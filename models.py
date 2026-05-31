@@ -106,7 +106,7 @@ def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None, 
     # 24小时时间过滤（以 published_at 为准，无 published_at 的文章保留）
     if max_age_hours:
         conditions.append(
-            "(published_at >= datetime('now', 'localtime', ?) OR published_at IS NULL)"
+            "(datetime(published_at) >= datetime('now', ?) OR published_at IS NULL)"
         )
         params.append(f"-{max_age_hours} hours")
     
