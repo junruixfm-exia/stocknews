@@ -27,6 +27,7 @@ class AISummarizer:
         self.cache_db = str(DATA_DIR / "ai_cache.db")
         self._digest_cache = None  # {result, timestamp}
         self._init_cache()
+        self._restore_digest_from_db()
     
     def _init_cache(self):
         """初始化缓存数据库"""
@@ -43,6 +44,17 @@ class AISummarizer:
         """)
         conn.commit()
         conn.close()
+    
+    def _restore_digest_from_db(self):
+        """冷启动时从数据库恢复热度缓存"""
+        try:
+            from models import load_digest_cache
+            saved = load_digest_cache()
+            if saved:
+                self._digest_cache = {"result": saved, "timestamp": time.time()}  # 启动即有效，30分钟内不会重新生成
+                print("[Digest] 从数据库恢复了热度缓存")
+        except Exception as e:
+            print(f"[Digest] 恢复缓存失败: {e}")
     
     def _make_hash(self, text: str) -> str:
         return hashlib.md5(text.encode()).hexdigest()
@@ -337,6 +349,13 @@ class AISummarizer:
             
             # 写入内存缓存（30分钟有效）
             self._digest_cache = {"result": result, "timestamp": time.time()}
+            
+            # 同步写入数据库持久化（休眠恢复不丢失）
+            try:
+                from models import save_digest_cache
+                save_digest_cache(result)
+            except Exception as e:
+                print(f"[Digest] 持久化缓存失败: {e}")
             
             return result
             

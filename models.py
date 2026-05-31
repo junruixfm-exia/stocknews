@@ -52,6 +52,12 @@ def init_db():
             error_message TEXT DEFAULT '',
             crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS digest_cache (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            result_json TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     """)
     conn.commit()
     conn.close()
@@ -197,3 +203,33 @@ def log_crawl(source: str, status: str, found: int, new: int, error=""):
     )
     conn.commit()
     conn.close()
+
+
+def save_digest_cache(result: dict):
+    """保存热度榜到数据库（持久化，休眠恢复不丢失）"""
+    # 去掉 _articles（运行时重建），只保存核心结果
+    clean = {k: v for k, v in result.items() if k != "topics"}
+    clean["topics"] = []
+    for t in result.get("topics", []):
+        ct = {k: v for k, v in t.items() if k != "_articles"}
+        clean["topics"].append(ct)
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO digest_cache (id, result_json, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
+        (json.dumps(clean, ensure_ascii=False),)
+    )
+    conn.commit()
+    conn.close()
+
+
+def load_digest_cache() -> dict | None:
+    """从数据库加载热度榜"""
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT result_json FROM digest_cache WHERE id = 1").fetchone()
+        conn.close()
+        if row:
+            return json.loads(row[0])
+    except Exception:
+        pass
+    return None
