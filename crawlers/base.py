@@ -44,7 +44,7 @@ class BaseCrawler(ABC):
             "tags": self._extract_tags(title + " " + (summary or "")),
             "related_stocks": related_stocks or [],
             "sentiment": "neutral",
-            "published_at": published_at or datetime.now().isoformat(),
+            "published_at": published_at,
         }
     
     def _clean_title(self, title: str) -> str:
