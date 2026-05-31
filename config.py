@@ -57,7 +57,7 @@ SOURCES = {
         "name": "雪球",
         "url": "https://xueqiu.com",
         "type": "api",
-        "enabled": True,
+        "enabled": False,  # Render US IP 被墙
     },
     "sina": {
         "name": "新浪财经",
