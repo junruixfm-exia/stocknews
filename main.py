@@ -237,25 +237,36 @@ async def api_crawl_status():
 @app.post("/api/ai/summarize")
 async def api_ai_summarize():
     """手动触发 AI 批量摘要"""
-    from ai_summary import summarizer
-    import sqlite3
-    from models import DB_PATH
-    
-    # 先查询待处理数量
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    pending = conn.execute(
-        "SELECT COUNT(*) as cnt FROM articles WHERE summary = '' OR summary IS NULL"
-    ).fetchone()["cnt"]
-    conn.close()
-    
-    count = summarizer.batch_summarize(max_count=50)
-    return {
-        "status": "ok",
-        "processed": count,
-        "pending_before": pending,
-        "remaining": pending - count,
-    }
+    import traceback
+    try:
+        from ai_summary import summarizer
+        import sqlite3
+        from models import DB_PATH
+        
+        # 检查 API Key
+        if not DEEPSEEK_API_KEY:
+            return {"status": "error", "message": "未配置 DEEPSEEK_API_KEY"}
+        
+        # 先查询待处理数量
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        pending = conn.execute(
+            "SELECT COUNT(*) as cnt FROM articles WHERE summary = '' OR summary IS NULL"
+        ).fetchone()["cnt"]
+        conn.close()
+        
+        if pending == 0:
+            return {"status": "ok", "processed": 0, "message": "没有需要处理的文章"}
+        
+        count = summarizer.batch_summarize(max_count=50)
+        return {
+            "status": "ok",
+            "processed": count,
+            "pending_before": pending,
+            "remaining": pending - count,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()[-500:]}
 
 
 @app.get("/api/ai/pending")
@@ -293,14 +304,22 @@ async def digest_page(request: Request):
 @app.get("/api/digest")
 async def api_digest():
     """生成 AI 新闻纪要并返回"""
-    from ai_summary import summarizer
-    # 获取 24h 内所有文章
-    data = get_articles(page=1, per_page=100, max_age_hours=24)
-    articles = data["articles"]
-    if not articles:
-        return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}
-    result = summarizer.generate_digest(articles)
-    return result
+    import traceback
+    try:
+        from ai_summary import summarizer
+        
+        if not DEEPSEEK_API_KEY:
+            return {"error": "未配置 DEEPSEEK_API_KEY", "topics": [], "summary": ""}
+        
+        # 获取 24h 内所有文章
+        data = get_articles(page=1, per_page=100, max_age_hours=24)
+        articles = data["articles"]
+        if not articles:
+            return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}
+        result = summarizer.generate_digest(articles)
+        return result
+    except Exception as e:
+        return {"error": f"{e}\n{traceback.format_exc()[-300:]}", "topics": [], "summary": ""}
 
 
 if __name__ == "__main__":
