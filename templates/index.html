@@ -2,6 +2,19 @@
 {% block title %}📰 股票资讯聚合{% endblock %}
 {% block content %}
 
+{% if data_stale %}
+<!-- 数据过时警告 -->
+<div id="stale-warning" class="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+        <span class="text-amber-500 text-lg">⏳</span>
+        <span class="text-sm text-amber-700">数据可能已过时，正在后台获取最新资讯...</span>
+    </div>
+    <button onclick="refreshNews()" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-full transition-colors">
+        立即刷新
+    </button>
+</div>
+{% endif %}
+
 <!-- 统计栏 -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-lg p-4 shadow-sm">

@@ -176,13 +176,31 @@
                 const resp = await fetch('/api/crawl', { method: 'POST' });
                 const data = await resp.json();
                 if (resp.ok) {
-                    showToast('🔄 后台抓取中，新文章将实时推送...');
+                    showToast('🔄 正在抓取最新资讯...');
+                    // 等待爬取完成（轮询状态）
+                    let attempts = 0;
+                    const checkInterval = setInterval(async () => {
+                        try {
+                            const statusResp = await fetch('/api/crawl/status');
+                            const status = await statusResp.json();
+                            attempts++;
+                            if (!status.is_data_stale || attempts > 30) {
+                                clearInterval(checkInterval);
+                                showToast('✅ 已获取最新资讯！');
+                                location.reload();
+                            }
+                        } catch(e) {
+                            clearInterval(checkInterval);
+                        }
+                    }, 2000);
                 } else {
                     showToast('❌ 刷新失败，请重试');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    icon.classList.remove('animate-spin');
                 }
             } catch(e) {
                 showToast('❌ 网络错误，请重试');
-            } finally {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50');
                 icon.classList.remove('animate-spin');

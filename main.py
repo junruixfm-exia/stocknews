@@ -15,6 +15,7 @@ from pathlib import Path
 from config import HOST, PORT, SOURCES, CRAWL_INTERVAL_MINUTES, DEEPSEEK_API_KEY
 from models import get_articles, get_article, get_stats, init_db
 from scheduler import start_scheduler, stop_scheduler, crawl_all_sources, ws_clients, set_main_loop
+from scheduler import is_data_stale, last_crawl_age_seconds, is_crawling
 
 logging.basicConfig(
     level=logging.INFO,
@@ -93,6 +94,13 @@ async def index(
     sentiment: str = Query(None),
 ):
     try:
+        # 检测数据是否过时，后台补爬（不阻塞页面返回）
+        data_stale = is_data_stale()
+        if data_stale:
+            logger.info(f"⚠️ 数据过时 {last_crawl_age_seconds():.0f}s，后台触发补爬")
+            import threading
+            threading.Thread(target=crawl_all_sources, daemon=True).start()
+
         data = get_articles(page=page, per_page=50, source=source, sentiment=sentiment)
         stats = get_stats()
         
@@ -130,6 +138,7 @@ async def index(
             interval=CRAWL_INTERVAL_MINUTES,
             has_ai=bool(DEEPSEEK_API_KEY),
             digest=digest,
+            data_stale=data_stale,
             now=datetime.now(),
         )
         return HTMLResponse(html)
@@ -212,6 +221,17 @@ async def api_crawl():
     thread = threading.Thread(target=crawl_all_sources, daemon=True)
     thread.start()
     return {"status": "ok", "message": "爬取已在后台启动"}
+
+
+@app.get("/api/crawl/status")
+async def api_crawl_status():
+    """查询爬取状态"""
+    return {
+        "last_crawl_age_seconds": last_crawl_age_seconds(),
+        "is_data_stale": is_data_stale(),
+        "is_crawling": is_crawling(),
+        "crawl_interval_minutes": CRAWL_INTERVAL_MINUTES,
+    }
 
 
 @app.post("/api/ai/summarize")
