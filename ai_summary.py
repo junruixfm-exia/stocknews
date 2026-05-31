@@ -170,7 +170,7 @@ class AISummarizer:
         
         processed = 0
         for row in rows:
-            result = self.summarize(row["title"], row.get("content", ""))
+            result = self.summarize(row["title"], row["content"] or "")
             if result.get("summary") or result.get("sentiment") != "neutral":
                 conn.execute(
                     "UPDATE articles SET summary = ?, sentiment = ?, tags = ?, related_stocks = ? WHERE id = ?",
