@@ -94,14 +94,21 @@ def save_article(article: dict) -> bool:
         conn.close()
 
 
-def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None):
-    """分页获取文章列表"""
+def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None, max_age_hours=24):
+    """分页获取文章列表（默认只返回 max_age_hours 小时内的文章）"""
     try:
         conn = get_db()
     except Exception:
         return {"articles": [], "total": 0, "page": page, "per_page": per_page, "total_pages": 0}
     conditions = []
     params = []
+    
+    # 24小时时间过滤（以 published_at 为准，无 published_at 的文章保留）
+    if max_age_hours:
+        conditions.append(
+            "(published_at >= datetime('now', 'localtime', ?) OR published_at IS NULL)"
+        )
+        params.append(f"-{max_age_hours} hours")
     
     if source:
         conditions.append("source = ?")
@@ -121,7 +128,7 @@ def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None):
     # 分页
     offset = (page - 1) * per_page
     rows = conn.execute(
-        f"SELECT * FROM articles {where} ORDER BY fetched_at DESC LIMIT ? OFFSET ?",
+        f"SELECT * FROM articles {where} ORDER BY published_at DESC LIMIT ? OFFSET ?",
         params + [per_page, offset]
     ).fetchall()
     
