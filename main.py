@@ -177,6 +177,29 @@ async def search(
     ))
 
 
+@app.get("/topic", response_class=HTMLResponse)
+async def topic_page(
+    request: Request,
+    q: str = Query(""),
+    page: int = Query(1, ge=1),
+):
+    """话题聚合页 - 展示某话题全部相关资讯（不限时间，50篇/页）"""
+    if not q.strip():
+        return HTMLResponse(_jinja_env.get_template("search.html").render(
+            request=request,
+            articles=[], total=0, page=1, per_page=50, total_pages=0,
+            query="", now=datetime.now(),
+        ))
+    data = get_articles(page=page, per_page=50, search=q.strip(), max_age_hours=None)
+    return HTMLResponse(_jinja_env.get_template("search.html").render(
+        request=request,
+        **data,
+        query=q,
+        title=f"🔥 {q} · 话题聚合",
+        now=datetime.now(),
+    ))
+
+
 @app.get("/stats", response_class=HTMLResponse)
 async def stats_page(request: Request):
     stats = get_stats()

@@ -62,7 +62,7 @@
     <p class="text-sm text-gray-700 mb-3 leading-relaxed">{{ digest.summary }}</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="digest-topics">
         {% for topic in digest.topics[:6] %}
-        <a href="/search?q={{ topic.topic|urlencode }}" class="bg-white rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer no-underline">
+        <a href="/topic?q={{ topic.topic|urlencode }}" class="bg-white rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer no-underline">
             <span class="text-xs font-bold text-white bg-gradient-to-br from-orange-400 to-red-500 rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
                 {{ topic.rank }}
             </span>

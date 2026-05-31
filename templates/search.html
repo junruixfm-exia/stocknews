@@ -1,20 +1,13 @@
 {% extends "base.html" %}
-{% block title %}搜索: {{ query }} - 📰 股票资讯{% endblock %}
+{% block title %}{{ title or '搜索: ' + query }} - 📰 股票资讯{% endblock %}
 {% block content %}
 
-<div class="mb-6">
-    <form action="/search" method="get" class="flex max-w-md">
-        <input type="text" name="q" value="{{ query }}" placeholder="搜索股票、关键词..."
-               class="flex-1 border rounded-l px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600">
-            搜索
-        </button>
-    </form>
-</div>
-
 {% if query %}
-<div class="mb-4 text-sm text-gray-500">
-    搜索 "{{ query }}" 找到 {{ total }} 条结果
+<div class="mb-4">
+    {% if title %}
+    <h1 class="text-lg font-bold text-gray-800">{{ title }}</h1>
+    {% endif %}
+    <p class="text-sm text-gray-500">共 {{ total }} 条相关资讯</p>
 </div>
 
 {% if articles %}
@@ -63,10 +56,12 @@
 {% endif %}
 
 {% else %}
-<div class="text-center py-20 text-gray-400">
-    <div class="text-5xl mb-4">🔍</div>
-    <p>输入关键词搜索资讯</p>
-</div>
+    {% if not title %}
+    <div class="text-center py-20 text-gray-400">
+        <div class="text-5xl mb-4">🔍</div>
+        <p>输入关键词搜索资讯</p>
+    </div>
+    {% endif %}
 {% endif %}
 
 {% endblock %}

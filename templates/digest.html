@@ -97,7 +97,7 @@ async function loadDigest() {
                     const sentimentColor = t.sentiment === 'positive' ? 'text-green-600' : t.sentiment === 'negative' ? 'text-red-500' : 'text-gray-500';
                     
                     return `
-                    <a href="/search?q=${encodeURIComponent(t.topic)}" class="block bg-white rounded-xl p-4 md:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer no-underline">
+                    <a href="/topic?q=${encodeURIComponent(t.topic)}" class="block bg-white rounded-xl p-4 md:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer no-underline">
                         <div class="flex items-start gap-3">
                             <!-- 排名 -->
                             <div class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
