@@ -196,6 +196,29 @@ async def api_ai_summarize():
     return {"status": "ok", "processed": count}
 
 
+@app.get("/digest", response_class=HTMLResponse)
+async def digest_page(request: Request):
+    """AI 新闻纪要 + 热度排名页面"""
+    return HTMLResponse(_jinja_env.get_template("digest.html").render(
+        request=request,
+        has_ai=bool(DEEPSEEK_API_KEY),
+        now=datetime.now(),
+    ))
+
+
+@app.get("/api/digest")
+async def api_digest():
+    """生成 AI 新闻纪要并返回"""
+    from ai_summary import summarizer
+    # 获取 24h 内所有文章
+    data = get_articles(page=1, per_page=100, max_age_hours=24)
+    articles = data["articles"]
+    if not articles:
+        return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}
+    result = summarizer.generate_digest(articles)
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=HOST, port=PORT, log_level="warning")

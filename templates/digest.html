@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}🔥 AI 新闻纪要 · 热度排名{% endblock %}
+{% block content %}
+
+<div class="mb-4 flex items-center justify-between">
+    <div>
+        <h1 class="text-lg md:text-xl font-bold text-gray-800">🔥 AI 新闻纪要</h1>
+        <p class="text-xs text-gray-400 mt-1">DeepSeek 智能分析 24h 新闻 · 按热度排名</p>
+    </div>
+    <button onclick="loadDigest()" id="digest-btn"
+            class="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-md">
+        <span id="digest-icon">🤖</span> <span>生成纪要</span>
+    </button>
+</div>
+
+<!-- 加载中 -->
+<div id="digest-loading" class="hidden text-center py-12">
+    <div class="animate-spin inline-block w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full"></div>
+    <p class="text-gray-400 text-sm mt-4">DeepSeek 正在分析 {{ stats.total_articles if stats else '' }} 篇文章...</p>
+    <p class="text-gray-300 text-xs mt-1">可能需要 15-30 秒</p>
+</div>
+
+<!-- 错误提示 -->
+<div id="digest-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+    <p class="text-red-600 text-sm" id="digest-error-msg"></p>
+</div>
+
+<!-- AI 今日总览 -->
+<div id="digest-summary" class="hidden bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-5 mb-6 text-white shadow-lg">
+    <div class="flex items-center gap-2 mb-2">
+        <span class="text-lg">📋</span>
+        <span class="text-xs opacity-80">AI 今日要闻总结</span>
+    </div>
+    <p class="text-base md:text-lg font-medium leading-relaxed" id="digest-summary-text"></p>
+    <p class="text-xs opacity-60 mt-2" id="digest-time"></p>
+</div>
+
+<!-- 热度排行榜 -->
+<div id="digest-topics" class="space-y-4 hidden">
+    <!-- JS 动态填充 -->
+</div>
+
+<!-- 初始空状态 -->
+<div id="digest-empty" class="text-center py-16">
+    <div class="text-5xl mb-4">🤖</div>
+    <p class="text-gray-400">点击「生成纪要」让 AI 分析 24h 新闻</p>
+    <p class="text-gray-300 text-xs mt-2">分析 {{ '--' }} 条来自多个来源的财经资讯</p>
+</div>
+
+<script>
+async function loadDigest() {
+    const loading = document.getElementById('digest-loading');
+    const errorEl = document.getElementById('digest-error');
+    const errorMsg = document.getElementById('digest-error-msg');
+    const summaryDiv = document.getElementById('digest-summary');
+    const topicsDiv = document.getElementById('digest-topics');
+    const emptyDiv = document.getElementById('digest-empty');
+    const btn = document.getElementById('digest-btn');
+    const icon = document.getElementById('digest-icon');
+    
+    // 重置状态
+    errorEl.classList.add('hidden');
+    summaryDiv.classList.add('hidden');
+    topicsDiv.classList.add('hidden');
+    topicsDiv.innerHTML = '';
+    
+    // 显示加载
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+    icon.textContent = '⏳';
+    emptyDiv.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    try {
+        const resp = await fetch('/api/digest');
+        const data = await resp.json();
+        
+        loading.classList.add('hidden');
+        
+        if (data.error) {
+            errorMsg.textContent = data.error;
+            errorEl.classList.remove('hidden');
+            emptyDiv.classList.remove('hidden');
+        } else {
+            // 今日要闻
+            document.getElementById('digest-summary-text').textContent = data.summary || '暂无总结';
+            document.getElementById('digest-time').textContent = 
+                data.generated_at ? '生成时间: ' + data.generated_at.replace('T', ' ').substring(0, 19) : '';
+            summaryDiv.classList.remove('hidden');
+            
+            // 话题排名
+            if (data.topics && data.topics.length > 0) {
+                topicsDiv.innerHTML = data.topics.map((t, i) => {
+                    const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${t.rank}`;
+                    const heatColor = t.heat >= 80 ? 'bg-red-500' : t.heat >= 60 ? 'bg-orange-500' : t.heat >= 40 ? 'bg-yellow-500' : 'bg-gray-400';
+                    const sentimentEmoji = t.sentiment === 'positive' ? '📈' : t.sentiment === 'negative' ? '📉' : '📊';
+                    const sentimentColor = t.sentiment === 'positive' ? 'text-green-600' : t.sentiment === 'negative' ? 'text-red-500' : 'text-gray-500';
+                    
+                    return `
+                    <div class="bg-white rounded-xl p-4 md:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                        <div class="flex items-start gap-3">
+                            <!-- 排名 -->
+                            <div class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                ${rankEmoji}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap mb-1">
+                                    <h3 class="text-sm md:text-base font-semibold text-gray-800">${t.topic}</h3>
+                                    <span class="${sentimentColor} text-xs">${sentimentEmoji}</span>
+                                </div>
+                                <p class="text-sm text-gray-500 mb-2">${t.summary || ''}</p>
+                                ${t.key_point ? `<p class="text-xs text-orange-600 bg-orange-50 rounded px-2 py-1 inline-block mb-2">💡 ${t.key_point}</p>` : ''}
+                                <div class="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+                                    <span>📰 ${t.article_count || 0}篇报道</span>
+                                    ${t.sources && t.sources.length > 0 ? 
+                                        `<span>🏷️ ${t.sources.slice(0, 4).join(' · ')}${t.sources.length > 4 ? ' +' + (t.sources.length - 4) : ''}</span>` 
+                                        : ''}
+                                </div>
+                            </div>
+                            <!-- 热度条 -->
+                            <div class="flex-shrink-0 text-center hidden sm:block">
+                                <div class="text-xl font-bold text-orange-500">${t.heat || 0}</div>
+                                <div class="text-xs text-gray-400">热度</div>
+                                <div class="w-2 h-16 bg-gray-100 rounded-full mx-auto mt-1 overflow-hidden">
+                                    <div class="w-full ${heatColor} rounded-full" style="height: ${t.heat || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                topicsDiv.classList.remove('hidden');
+            }
+        }
+    } catch(e) {
+        loading.classList.add('hidden');
+        errorMsg.textContent = '网络错误: ' + e.message;
+        errorEl.classList.remove('hidden');
+        emptyDiv.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        icon.textContent = '🤖';
+    }
+}
+
+// 页面加载时自动获取文章数
+(async function() {
+    try {
+        const resp = await fetch('/api/stats');
+        const stats = await resp.json();
+        const emptyMsg = document.querySelector('#digest-empty p:last-child');
+        if (emptyMsg) {
+            emptyMsg.textContent = `分析 ${stats.total_articles || '--'} 条来自多个来源的财经资讯`;
+        }
+    } catch(e) {}
+})();
+</script>
+
+{% endblock %}

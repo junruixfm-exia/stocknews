@@ -186,5 +186,105 @@ class AISummarizer:
         return processed
 
 
+    def generate_digest(self, articles: list) -> dict:
+        """
+        生成 24h 新闻纪要并按热度排名
+        
+        参数:
+            articles: 文章列表，每篇需包含 title, source_name, published_at, sentiment
+        
+        返回:
+            {
+                "generated_at": "ISO时间",
+                "total_topics": N,
+                "summary": "今日要闻一句话总结",
+                "topics": [
+                    {
+                        "rank": 1,
+                        "topic": "话题名称",
+                        "heat": 95,
+                        "summary": "一句话摘要",
+                        "article_count": 8,
+                        "sources": ["财联社", "华尔街见闻", ...],
+                        "sentiment": "positive/negative/mixed",
+                        "key_point": "核心要点（一句话）"
+                    },
+                    ...
+                ]
+            }
+        """
+        if not DEEPSEEK_API_KEY or not articles:
+            return {"error": "无 API Key 或无文章数据", "topics": [], "summary": ""}
+        
+        # 构建标题列表
+        title_list = []
+        for i, a in enumerate(articles[:100]):  # 最多 100 篇
+            title_list.append(f"[{i+1}] [{a.get('source_name', '?')}] {a.get('title', '')}")
+        
+        titles_text = "\n".join(title_list)
+        
+        prompt = f"""你是一位资深财经主编。以下是过去24小时内抓取到的财经资讯标题列表（共{len(title_list)}条），来自多个不同来源。
+
+请完成以下任务：
+1. 将这些新闻按话题归类（相同/相似话题合并），识别出最重要的 5-10 个话题
+2. 按「热度」排序——热度综合考虑：覆盖该话题的来源数量、报道数量、时效性、对市场的影响程度
+3. 为每个话题打分（1-100）并写一句话摘要
+4. 最后写一句「今日要闻」整体总结
+
+返回严格的 JSON 格式（不要任何其他文字）：
+
+{{
+  "summary": "今日要闻一句话总结（50字以内）",
+  "topics": [
+    {{
+      "rank": 1,
+      "topic": "话题名称（简洁，如"美联储降息预期升温"）",
+      "heat": 95,
+      "summary": "一句话描述该话题核心内容（40字以内）",
+      "article_count": 8,
+      "sources": ["来源1", "来源2"],
+      "sentiment": "positive/negative/mixed",
+      "key_point": "最值得关注的一个要点（30字以内）"
+    }}
+  ]
+}}
+
+资讯列表：
+{titles_text}
+"""
+        
+        try:
+            resp = self.client.post(
+                self.API_URL,
+                headers={
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.3,
+                    "max_tokens": 2000,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+            
+            if resp.status_code != 200:
+                print(f"[Digest] API 错误 {resp.status_code}: {resp.text[:200]}")
+                return {"error": f"API 错误 {resp.status_code}", "topics": [], "summary": ""}
+            
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            result = json.loads(content)
+            result["generated_at"] = __import__("datetime").datetime.now().isoformat()
+            result["total_topics"] = len(result.get("topics", []))
+            
+            return result
+            
+        except Exception as e:
+            print(f"[Digest] 异常: {e}")
+            return {"error": str(e), "topics": [], "summary": ""}
+
+
 # 全局实例
 summarizer = AISummarizer()
