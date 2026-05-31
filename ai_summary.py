@@ -265,9 +265,8 @@ class AISummarizer:
 {titles_text}
 """
         
-        # 动态计算 max_tokens：基础 4000 + 每篇 80 tokens，上限 16000
-        article_count = len(title_list)
-        dynamic_max_tokens = min(4000 + article_count * 80, 16000)
+        # max_tokens 固定 16000（article_ids 需要更多输出空间）
+        dynamic_max_tokens = 16000
         
         try:
             resp = self.client.post(
