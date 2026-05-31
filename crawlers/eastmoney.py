@@ -52,11 +52,15 @@ class EastmoneyCrawler(BaseCrawler):
                     if len(title) < 10:
                         continue
 
+                    # 页面无真实时间戳，用当前时间偏移使文章合理穿插
+                    pub_time = datetime.now(self.CST) - timedelta(minutes=30 + count * 5)
+
                     articles.append(
                         self.make_article(
                             title=title,
                             url=url,
                             tags=[category] + self._extract_tags(title),
+                            published_at=pub_time.isoformat(),
                         )
                     )
                     count += 1
