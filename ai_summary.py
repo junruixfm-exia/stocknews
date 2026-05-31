@@ -119,7 +119,7 @@ class AISummarizer:
                     "model": self.MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 300,
+                    "max_tokens": 2000,
                     "response_format": {"type": "json_object"},
                 },
             )
@@ -129,7 +129,12 @@ class AISummarizer:
                 return {"summary": "", "sentiment": "neutral", "tags": [], "related_stocks": []}
             
             data = resp.json()
-            content = data["choices"][0]["message"]["content"]
+            msg = data["choices"][0]["message"]
+            content = msg.get("content", "") or ""
+            if not content.strip():
+                content = msg.get("reasoning_content", "") or ""
+            if not content.strip():
+                return {"summary": "", "sentiment": "neutral", "tags": [], "related_stocks": []}
             result = json.loads(content)
             
             # 保存缓存
@@ -231,14 +236,14 @@ class AISummarizer:
 3. 为每个话题打分（1-100）并写一句话摘要
 4. 最后写一句「今日要闻」整体总结
 
-返回严格的 JSON 格式（不要任何其他文字）：
+返回严格的 JSON 格式（不要markdown代码块、不要任何其他文字）：
 
 {{
   "summary": "今日要闻一句话总结（50字以内）",
   "topics": [
     {{
       "rank": 1,
-      "topic": "话题名称（简洁，如"美联储降息预期升温"）",
+      "topic": "话题名称（简洁，如美联储降息预期升温）",
       "heat": 95,
       "summary": "一句话描述该话题核心内容（40字以内）",
       "article_count": 8,
@@ -264,8 +269,7 @@ class AISummarizer:
                     "model": self.MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 2000,
-                    "response_format": {"type": "json_object"},
+                    "max_tokens": 4000,
                 },
             )
             
@@ -274,7 +278,13 @@ class AISummarizer:
                 return {"error": f"API 错误 {resp.status_code}", "topics": [], "summary": ""}
             
             data = resp.json()
-            content = data["choices"][0]["message"]["content"]
+            msg = data["choices"][0]["message"]
+            content = msg.get("content", "") or ""
+            # deepseek-v4-pro 推理模型有时输出在 reasoning_content
+            if not content.strip():
+                content = msg.get("reasoning_content", "") or ""
+            if not content.strip():
+                return {"error": "模型返回空内容", "topics": [], "summary": ""}
             result = json.loads(content)
             result["generated_at"] = __import__("datetime").datetime.now().isoformat()
             result["total_topics"] = len(result.get("topics", []))
