@@ -83,16 +83,10 @@ SOURCES = {
         "type": "rss",
         "enabled": True,
     },
-    "marketwatch": {
-        "name": "MarketWatch",
-        "url": "https://www.marketwatch.com",
-        "type": "rss",
-        "enabled": True,
-    },
-    "wsj": {
-        "name": "WSJ",
-        "url": "https://www.wsj.com",
-        "type": "rss",
+    "zaobao": {
+        "name": "联合早报",
+        "url": "https://www.zaobao.com/realtime",
+        "type": "scrape",
         "enabled": True,
     },
     "yahoo": {
