@@ -233,13 +233,14 @@ class AISummarizer:
         
         titles_text = "\n".join(title_list)
         
-        prompt = f"""你是一位资深财经主编。以下是过去24小时内抓取到的财经资讯标题列表（共{len(title_list)}条），来自多个不同来源。
+        prompt = f"""你是一位资深财经主编。以下是过去24小时内抓取到的财经资讯标题列表（共{len(title_list)}条），来自多个不同来源。每篇文章前有编号。
 
 请完成以下任务：
 1. 将这些新闻按话题归类（相同/相似话题合并），识别出最重要的 5-10 个话题
 2. 按「热度」排序——热度综合考虑：覆盖该话题的来源数量、报道数量、时效性、对市场的影响程度
 3. 为每个话题打分（1-100）并写一句话摘要
-4. 最后写一句「今日要闻」整体总结
+4. **为每个话题列出属于该话题的文章编号**（article_ids 字段，编号来自文章前的 [N]）
+5. 最后写一句「今日要闻」整体总结
 
 返回严格的 JSON 格式（不要markdown代码块、不要任何其他文字）：
 
@@ -254,7 +255,8 @@ class AISummarizer:
       "article_count": 8,
       "sources": ["来源1", "来源2"],
       "sentiment": "positive/negative/mixed",
-      "key_point": "最值得关注的一个要点（30字以内）"
+      "key_point": "最值得关注的一个要点（30字以内）",
+      "article_ids": [1, 5, 12, 18]
     }}
   ]
 }}
@@ -315,6 +317,24 @@ class AISummarizer:
                 __import__("datetime").timezone(__import__("datetime").timedelta(hours=8))
             ).isoformat()
             result["total_topics"] = len(result.get("topics", []))
+            
+            # 映射 article_ids → 实际文章数据
+            for topic in result.get("topics", []):
+                ids = topic.get("article_ids", [])
+                topic["_articles"] = []
+                for aid in ids:
+                    idx = aid - 1  # 编号从1开始
+                    if 0 <= idx < len(articles):
+                        topic["_articles"].append({
+                            "id": articles[idx].get("id"),
+                            "title": articles[idx].get("title", ""),
+                            "source_name": articles[idx].get("source_name", ""),
+                            "published_at": articles[idx].get("published_at", ""),
+                            "url": articles[idx].get("url", ""),
+                            "summary": articles[idx].get("summary", ""),
+                            "sentiment": articles[idx].get("sentiment", "neutral"),
+                            "tags": articles[idx].get("tags", []),
+                        })
             
             # 写入内存缓存（30分钟有效）
             self._digest_cache = {"result": result, "timestamp": time.time()}

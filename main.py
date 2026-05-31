@@ -181,23 +181,45 @@ async def search(
 async def topic_page(
     request: Request,
     q: str = Query(""),
-    page: int = Query(1, ge=1),
 ):
-    """话题聚合页 - 展示某话题全部相关资讯（不限时间，50篇/页）"""
+    """话题聚合页 - 从 AI 热度分析缓存中加载该话题的全部文章"""
     if not q.strip():
-        return HTMLResponse(_jinja_env.get_template("search.html").render(
-            request=request,
-            articles=[], total=0, page=1, per_page=50, total_pages=0,
-            query="", now=datetime.now(),
+        return HTMLResponse(_jinja_env.get_template("topic.html").render(
+            request=request, query="", articles=[], now=datetime.now(),
         ))
-    data = get_articles(page=page, per_page=50, search=q.strip(), max_age_hours=None)
-    return HTMLResponse(_jinja_env.get_template("search.html").render(
-        request=request,
-        **data,
-        query=q,
-        title=f"🔥 {q} · 话题聚合",
-        now=datetime.now(),
+    return HTMLResponse(_jinja_env.get_template("topic.html").render(
+        request=request, query=q, articles=[], now=datetime.now(),
     ))
+
+
+@app.get("/api/topic/articles")
+async def api_topic_articles(q: str = Query("")):
+    """获取某话题关联的文章列表（来自 Digest 缓存）"""
+    from ai_summary import summarizer
+    
+    cache = summarizer._digest_cache
+    if not cache or not cache.get("result"):
+        # 缓存为空，回退到关键词搜索
+        data = get_articles(page=1, per_page=50, search=q, max_age_hours=24)
+        return {"articles": data["articles"], "total": data["total"], "source": "search"}
+    
+    topics = cache["result"].get("topics", [])
+    for topic in topics:
+        if topic.get("topic") == q:
+            return {
+                "articles": topic.get("_articles", []),
+                "total": len(topic.get("_articles", [])),
+                "source": "digest",
+                "topic_info": {
+                    "rank": topic.get("rank"),
+                    "heat": topic.get("heat"),
+                    "summary": topic.get("summary"),
+                }
+            }
+    
+    # 未找到精确匹配，回退到关键词搜索
+    data = get_articles(page=1, per_page=50, search=q, max_age_hours=24)
+    return {"articles": data["articles"], "total": data["total"], "source": "search"}
 
 
 @app.get("/stats", response_class=HTMLResponse)
@@ -385,6 +407,9 @@ async def api_digest():
         if not articles:
             return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}
         result = summarizer.generate_digest(articles)
+        # 移除 _articles 内部字段（仅用于话题页面后端查询）
+        for t in result.get("topics", []):
+            t.pop("_articles", None)
         return result
     except Exception as e:
         return {"error": f"{e}\n{traceback.format_exc()[-300:]}", "topics": [], "summary": ""}
