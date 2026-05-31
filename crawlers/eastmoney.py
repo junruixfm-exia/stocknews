@@ -52,8 +52,8 @@ class EastmoneyCrawler(BaseCrawler):
                     if len(title) < 10:
                         continue
 
-                    # 页面无真实时间戳，散布在30分钟~12小时前，均匀穿插
-                    pub_time = datetime.now(self.CST) - timedelta(minutes=30 + count * 35)
+                    # 页面无真实时间戳，均布到最近24小时使各来源穿插
+                    pub_time = datetime.now(self.CST) - timedelta(hours=1 + count * 1.2)
 
                     articles.append(
                         self.make_article(
