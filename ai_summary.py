@@ -8,6 +8,7 @@ DeepSeek AI 摘要模块
 import json
 import hashlib
 import sqlite3
+import time
 from typing import Optional
 
 import httpx
@@ -24,6 +25,7 @@ class AISummarizer:
     def __init__(self):
         self.client = httpx.Client(timeout=120)
         self.cache_db = str(DATA_DIR / "ai_cache.db")
+        self._digest_cache = None  # {result, timestamp}
         self._init_cache()
     
     def _init_cache(self):
@@ -312,11 +314,28 @@ class AISummarizer:
             result["generated_at"] = __import__("datetime").datetime.now().isoformat()
             result["total_topics"] = len(result.get("topics", []))
             
+            # 写入内存缓存（30分钟有效）
+            self._digest_cache = {"result": result, "timestamp": time.time()}
+            
             return result
             
         except Exception as e:
             print(f"[Digest] 异常: {e}")
             return {"error": str(e), "topics": [], "summary": ""}
+    
+    def get_digest(self, articles: list, max_age_seconds: int = 1800) -> dict:
+        """
+        获取缓存的 Digest（30 分钟内有效），缓存过期则重新生成
+        
+        参数:
+            articles: 文章列表
+            max_age_seconds: 缓存有效期（秒），默认 30 分钟
+        """
+        if self._digest_cache:
+            age = time.time() - self._digest_cache["timestamp"]
+            if age < max_age_seconds:
+                return self._digest_cache["result"]
+        return self.generate_digest(articles)
 
 
 # 全局实例

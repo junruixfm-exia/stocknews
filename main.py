@@ -3,6 +3,7 @@
 支持 WebSocket 实时推送 + AI 摘要 + 移动端适配
 """
 import logging
+import time
 from datetime import datetime
 from contextlib import asynccontextmanager
 
@@ -94,6 +95,30 @@ async def index(
     try:
         data = get_articles(page=page, source=source, sentiment=sentiment)
         stats = get_stats()
+        
+        # 获取 AI Digest（缓存30分钟，避免每次请求都调 API）
+        # 缓存未命中时跳过，由调度器后台预生成
+        digest = None
+        if DEEPSEEK_API_KEY:
+            try:
+                from ai_summary import summarizer
+                cache = summarizer._digest_cache
+                if cache and (time.time() - cache["timestamp"]) < 1800:
+                    digest = cache["result"]
+                else:
+                    # 后台触发生成，本次请求不等待
+                    import threading
+                    def _gen():
+                        try:
+                            articles = data["articles"][:80]
+                            if articles:
+                                summarizer.get_digest(articles, max_age_seconds=0)
+                        except Exception:
+                            pass
+                    threading.Thread(target=_gen, daemon=True).start()
+            except Exception:
+                pass
+        
         tmpl = _jinja_env.get_template("index.html")
         html = tmpl.render(
             request=request,
@@ -104,6 +129,7 @@ async def index(
             current_sentiment=sentiment,
             interval=CRAWL_INTERVAL_MINUTES,
             has_ai=bool(DEEPSEEK_API_KEY),
+            digest=digest,
             now=datetime.now(),
         )
         return HTMLResponse(html)

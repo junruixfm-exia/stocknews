@@ -99,6 +99,20 @@ def crawl_all_sources():
         except Exception as e:
             print(f"  🤖 AI: {e}")
     
+    # AI Digest 预生成（后台线程，不阻塞）
+    if total_new > 0:
+        import threading
+        def _gen_digest():
+            try:
+                from models import get_articles
+                articles = get_articles(page=1, per_page=100, max_age_hours=24)["articles"]
+                if articles:
+                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
+                    print(f"  🔥 Digest: 已更新")
+            except Exception as e:
+                print(f"  🔥 Digest: {e}")
+        threading.Thread(target=_gen_digest, daemon=True).start()
+    
     # WebSocket 推送新文章
     if total_new > 0 and ws_clients:
         _push_to_clients(total_new)
