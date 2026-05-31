@@ -148,7 +148,7 @@ class AISummarizer:
             print(f"[AI] 异常: {e}")
             return {"summary": "", "sentiment": "neutral", "tags": [], "related_stocks": []}
     
-    def batch_summarize(self, articles: list, max_count: int = 20) -> int:
+    def batch_summarize(self, articles: list = None, max_count: int = 20) -> int:
         """
         批量 AI 分析文章（仅处理没有摘要的）
         返回处理数量
