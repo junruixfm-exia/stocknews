@@ -121,7 +121,7 @@ def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None):
     # 分页
     offset = (page - 1) * per_page
     rows = conn.execute(
-        f"SELECT * FROM articles {where} ORDER BY id DESC LIMIT ? OFFSET ?",
+        f"SELECT * FROM articles {where} ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?",
         params + [per_page, offset]
     ).fetchall()
     
