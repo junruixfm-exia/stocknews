@@ -41,11 +41,20 @@ class SinaCrawler(BaseCrawler):
                     title = item.get("title", "")
                     if not title:
                         continue
+                    # 转换 Unix 时间戳为 ISO 格式
+                    pub_time = None
+                    ctime = item.get("ctime", "")
+                    if ctime and str(ctime).isdigit():
+                        try:
+                            from datetime import datetime
+                            pub_time = datetime.fromtimestamp(int(ctime)).isoformat()
+                        except Exception:
+                            pass
                     articles.append(self.make_article(
                         title=title,
                         url=item.get("url", ""),
                         summary=item.get("intro", ""),
-                        published_at=item.get("ctime", ""),
+                        published_at=pub_time,
                         tags=self._extract_tags(title),
                     ))
         except Exception as e:
