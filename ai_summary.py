@@ -261,6 +261,10 @@ class AISummarizer:
 {titles_text}
 """
         
+        # 动态计算 max_tokens：基础 4000 + 每篇 80 tokens，上限 16000
+        article_count = len(title_list)
+        dynamic_max_tokens = min(4000 + article_count * 80, 16000)
+        
         try:
             resp = self.client.post(
                 self.API_URL,
@@ -272,7 +276,7 @@ class AISummarizer:
                     "model": self.MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 8000,
+                    "max_tokens": dynamic_max_tokens,
                 },
             )
             
