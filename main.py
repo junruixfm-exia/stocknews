@@ -93,7 +93,7 @@ async def index(
     sentiment: str = Query(None),
 ):
     try:
-        data = get_articles(page=page, source=source, sentiment=sentiment)
+        data = get_articles(page=page, per_page=50, source=source, sentiment=sentiment)
         stats = get_stats()
         
         # 获取 AI Digest（缓存30分钟，避免每次请求都调 API）
