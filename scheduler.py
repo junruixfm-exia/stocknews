@@ -132,12 +132,8 @@ def _crawl_all_sources_impl():
     global _last_crawl_time
     _last_crawl_time = time.time()
 
-    # AI 摘要（如果有 API Key）
-    if total_new > 0:
-        try:
-            ai_count = summarizer.batch_summarize(max_count=20)
-        except Exception as e:
-            print(f"  🤖 AI: {e}")
+    # AI 摘要改为手动触发，不再自动运行
+    # （节省 DeepSeek API 费用，用户可按需点击按钮触发）
 
     # AI Digest 预生成（后台线程，不阻塞）
     if total_new > 0:

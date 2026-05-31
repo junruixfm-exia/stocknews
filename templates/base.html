@@ -212,6 +212,66 @@
         // 暴露到全局作用域（供 onclick 属性调用）
         window.refreshNews = refreshNews;
         window.showToast = showToast;
+        
+        // AI 摘要手动触发
+        async function triggerAISummary() {
+            const btn = document.getElementById('ai-summarize-btn');
+            const icon = document.getElementById('ai-summarize-icon');
+            if (!btn) return;
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            icon.textContent = '⏳';
+            
+            try {
+                const resp = await fetch('/api/ai/summarize', { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok && data.processed > 0) {
+                    showToast(`🤖 AI 已处理 ${data.processed} 篇文章`);
+                    // 更新待处理计数
+                    updatePendingCount();
+                    // 刷新页面显示新摘要
+                    setTimeout(() => location.reload(), 1500);
+                } else if (resp.ok && data.processed === 0) {
+                    showToast('✅ 没有需要处理的文章');
+                } else {
+                    showToast('❌ AI 摘要失败，请重试');
+                }
+            } catch(e) {
+                showToast('❌ 网络错误');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                icon.textContent = '🤖';
+            }
+        }
+        window.triggerAISummary = triggerAISummary;
+        
+        // 更新待处理文章数
+        async function updatePendingCount() {
+            const el = document.getElementById('ai-pending-count');
+            if (!el) return;
+            try {
+                const resp = await fetch('/api/ai/pending');
+                const data = await resp.json();
+                if (data.pending > 0) {
+                    el.textContent = `${data.pending} 篇待处理`;
+                    el.className = 'text-xs text-orange-500 font-medium';
+                } else if (data.summarized > 0) {
+                    el.textContent = `${data.summarized} 篇已摘要`;
+                    el.className = 'text-xs text-green-500';
+                } else {
+                    el.textContent = '--';
+                    el.className = 'text-xs text-indigo-400';
+                }
+            } catch(e) {}
+        }
+        window.updatePendingCount = updatePendingCount;
+        
+        // 页面加载时更新计数
+        if (document.getElementById('ai-pending-count')) {
+            updatePendingCount();
+        }
     })();
     </script>
 </body>

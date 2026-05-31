@@ -238,8 +238,46 @@ async def api_crawl_status():
 async def api_ai_summarize():
     """手动触发 AI 批量摘要"""
     from ai_summary import summarizer
+    import sqlite3
+    from models import DB_PATH
+    
+    # 先查询待处理数量
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    pending = conn.execute(
+        "SELECT COUNT(*) as cnt FROM articles WHERE summary = '' OR summary IS NULL"
+    ).fetchone()["cnt"]
+    conn.close()
+    
     count = summarizer.batch_summarize(max_count=50)
-    return {"status": "ok", "processed": count}
+    return {
+        "status": "ok",
+        "processed": count,
+        "pending_before": pending,
+        "remaining": pending - count,
+    }
+
+
+@app.get("/api/ai/pending")
+async def api_ai_pending():
+    """查询待 AI 摘要的文章数量"""
+    import sqlite3
+    from models import DB_PATH
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    pending = conn.execute(
+        "SELECT COUNT(*) as cnt FROM articles WHERE summary = '' OR summary IS NULL"
+    ).fetchone()["cnt"]
+    total = conn.execute("SELECT COUNT(*) as cnt FROM articles").fetchone()["cnt"]
+    summarized = conn.execute(
+        "SELECT COUNT(*) as cnt FROM articles WHERE summary != '' AND summary IS NOT NULL"
+    ).fetchone()["cnt"]
+    conn.close()
+    return {
+        "pending": pending,
+        "summarized": summarized,
+        "total": total,
+    }
 
 
 @app.get("/digest", response_class=HTMLResponse)
