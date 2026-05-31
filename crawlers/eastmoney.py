@@ -52,16 +52,11 @@ class EastmoneyCrawler(BaseCrawler):
                     if len(title) < 10:
                         continue
 
-                    # 错开时间戳：每篇递减3分钟，避免全部挤在一起
-                    minutes_ago = count * 3
-                    pub_time = datetime.now(self.CST) - timedelta(minutes=minutes_ago)
-
                     articles.append(
                         self.make_article(
                             title=title,
                             url=url,
                             tags=[category] + self._extract_tags(title),
-                            published_at=pub_time.isoformat(),
                         )
                     )
                     count += 1
