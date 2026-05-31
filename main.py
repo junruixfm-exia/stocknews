@@ -402,7 +402,7 @@ async def api_digest():
             return {"error": "未配置 DEEPSEEK_API_KEY", "topics": [], "summary": ""}
         
         # 获取 24h 内所有文章
-        data = get_articles(page=1, per_page=100, max_age_hours=24)
+        data = get_articles(page=1, per_page=150, max_age_hours=24)
         articles = data["articles"]
         if not articles:
             return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}

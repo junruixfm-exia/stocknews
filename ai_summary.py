@@ -225,7 +225,7 @@ class AISummarizer:
         
         # 构建标题列表（限制数量避免超 token）
         title_list = []
-        for i, a in enumerate(articles[:80]):  # 最多 80 篇
+        for i, a in enumerate(articles[:150]):  # 最多 150 篇
             title = a.get('title', '')
             if len(title) > 60:
                 title = title[:60] + '...'
