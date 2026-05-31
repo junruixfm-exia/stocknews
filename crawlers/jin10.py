@@ -12,6 +12,11 @@ class Jin10Crawler(BaseCrawler):
     
     def __init__(self):
         super().__init__("jin10", "金十数据")
+        self._enabled = False  # 反爬严格，默认禁用
+    
+    @property
+    def enabled(self):
+        return self._enabled
     
     def fetch(self) -> List[dict]:
         articles = []

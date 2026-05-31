@@ -18,6 +18,10 @@ from crawlers.eastmoney import EastmoneyCrawler
 from crawlers.xueqiu import XueqiuCrawler
 from crawlers.sina import SinaCrawler
 from crawlers.jin10 import Jin10Crawler
+from crawlers.news_36kr import News36krCrawler
+from crawlers.cnbc import CNBCCrawler
+from crawlers.marketwatch import MarketWatchCrawler
+from crawlers.wsj import WSJCrawler
 from crawlers.yahoo import YahooCrawler
 from crawlers.finnhub import FinnhubCrawler
 
@@ -50,6 +54,10 @@ def crawl_all_sources():
         ("雪球", XueqiuCrawler()),
         ("新浪财经", SinaCrawler()),
         ("金十数据", Jin10Crawler()),
+        ("36氪", News36krCrawler()),
+        ("CNBC", CNBCCrawler()),
+        ("MarketWatch", MarketWatchCrawler()),
+        ("WSJ", WSJCrawler()),
         ("Yahoo Finance", YahooCrawler()),
         ("Finnhub", FinnhubCrawler()),
     ]
@@ -126,9 +134,15 @@ def start_scheduler():
     """启动定时调度器"""
     init_db()
     
-    # 立即执行一次
-    print("🚀 首次爬取...")
-    crawl_all_sources()
+    # 后台执行首次爬取（不阻塞服务启动）
+    import threading
+    def initial_crawl():
+        try:
+            print("🚀 首次爬取（后台）...")
+            crawl_all_sources()
+        except Exception as e:
+            print(f"⚠️ 首次爬取失败: {e}")
+    threading.Thread(target=initial_crawl, daemon=True).start()
     
     # 每隔 N 分钟执行
     scheduler.add_job(

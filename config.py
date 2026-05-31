@@ -6,6 +6,7 @@ BASE_DIR = Path(__file__).parent
 
 # Render 持久化磁盘路径（通过环境变量 DATA_DIR 设置）
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR)))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 尝试加载 .env 文件
 env_path = BASE_DIR / ".env"
@@ -68,6 +69,30 @@ SOURCES = {
         "name": "金十数据",
         "url": "https://www.jin10.com",
         "type": "scrape",
+        "enabled": False,  # 反爬严格，暂时禁用
+    },
+    "36kr": {
+        "name": "36氪",
+        "url": "https://36kr.com/newsflashes",
+        "type": "scrape",
+        "enabled": True,
+    },
+    "cnbc": {
+        "name": "CNBC",
+        "url": "https://www.cnbc.com",
+        "type": "rss",
+        "enabled": True,
+    },
+    "marketwatch": {
+        "name": "MarketWatch",
+        "url": "https://www.marketwatch.com",
+        "type": "rss",
+        "enabled": True,
+    },
+    "wsj": {
+        "name": "WSJ",
+        "url": "https://www.wsj.com",
+        "type": "rss",
         "enabled": True,
     },
     "yahoo": {

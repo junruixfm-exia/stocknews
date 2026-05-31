@@ -96,7 +96,10 @@ def save_article(article: dict) -> bool:
 
 def get_articles(page=1, per_page=20, source=None, sentiment=None, search=None):
     """分页获取文章列表"""
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception:
+        return {"articles": [], "total": 0, "page": page, "per_page": per_page, "total_pages": 0}
     conditions = []
     params = []
     
@@ -155,29 +158,27 @@ def get_article(article_id: int):
 
 def get_stats():
     """获取统计信息"""
-    conn = get_db()
-    total = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
-    today = conn.execute(
-        "SELECT COUNT(*) FROM articles WHERE date(fetched_at) = date('now')"
-    ).fetchone()[0]
-    
-    # 各来源文章数
-    sources = conn.execute(
-        "SELECT source_name, COUNT(*) as cnt FROM articles GROUP BY source ORDER BY cnt DESC"
-    ).fetchall()
-    
-    # 情感分布
-    sentiment = conn.execute(
-        "SELECT sentiment, COUNT(*) as cnt FROM articles GROUP BY sentiment"
-    ).fetchall()
-    
-    conn.close()
-    return {
-        "total_articles": total,
-        "today_articles": today,
-        "sources": [dict(r) for r in sources],
-        "sentiment": [dict(r) for r in sentiment],
-    }
+    try:
+        conn = get_db()
+        total = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+        today = conn.execute(
+            "SELECT COUNT(*) FROM articles WHERE date(fetched_at) = date('now')"
+        ).fetchone()[0]
+        sources = conn.execute(
+            "SELECT source_name, COUNT(*) as cnt FROM articles GROUP BY source ORDER BY cnt DESC"
+        ).fetchall()
+        sentiment = conn.execute(
+            "SELECT sentiment, COUNT(*) as cnt FROM articles GROUP BY sentiment"
+        ).fetchall()
+        conn.close()
+        return {
+            "total_articles": total,
+            "today_articles": today,
+            "sources": [dict(r) for r in sources],
+            "sentiment": [dict(r) for r in sentiment],
+        }
+    except Exception:
+        return {"total_articles": 0, "today_articles": 0, "sources": [], "sentiment": []}
 
 
 def log_crawl(source: str, status: str, found: int, new: int, error=""):

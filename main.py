@@ -8,8 +8,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 
 from config import HOST, PORT, SOURCES, CRAWL_INTERVAL_MINUTES, DEEPSEEK_API_KEY
 from models import get_articles, get_article, get_stats, init_db
@@ -21,20 +21,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger("stocknews")
 
-templates = Jinja2Templates(directory="templates")
+_jinja_env = Environment(loader=FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=True, cache_size=0)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    import asyncio
-    set_main_loop(asyncio.get_running_loop())
-    init_db()
-    start_scheduler()
-    logger.info(f"📰 服务启动: http://{HOST}:{PORT}")
-    logger.info(f"📡 数据源: {' '.join(s['name'] for s in SOURCES.values() if s['enabled'])}")
-    logger.info(f"🤖 AI摘要: {'已启用 (DeepSeek)' if DEEPSEEK_API_KEY else '未启用（设置 DEEPSEEK_API_KEY）'}")
+    import asyncio, traceback
+    try:
+        set_main_loop(asyncio.get_running_loop())
+        init_db()
+        logger.info("✅ 数据库初始化完成")
+        start_scheduler()
+        logger.info("✅ 调度器启动完成")
+        logger.info(f"📰 服务启动: http://{HOST}:{PORT}")
+    except Exception as e:
+        logger.error(f"⚠️ 启动失败: {e}\n{traceback.format_exc()}")
     yield
-    stop_scheduler()
+    try:
+        stop_scheduler()
+    except:
+        pass
     logger.info("👋 关闭")
 
 
@@ -43,6 +49,11 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 # ===== WebSocket 实时推送 =====
@@ -80,31 +91,37 @@ async def index(
     source: str = Query(None),
     sentiment: str = Query(None),
 ):
-    data = get_articles(page=page, source=source, sentiment=sentiment)
-    stats = get_stats()
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        **data,
-        "stats": stats,
-        "sources": SOURCES,
-        "current_source": source,
-        "current_sentiment": sentiment,
-        "interval": CRAWL_INTERVAL_MINUTES,
-        "has_ai": bool(DEEPSEEK_API_KEY),
-        "now": datetime.now(),
-    })
+    try:
+        data = get_articles(page=page, source=source, sentiment=sentiment)
+        stats = get_stats()
+        tmpl = _jinja_env.get_template("index.html")
+        html = tmpl.render(
+            request=request,
+            **data,
+            stats=stats,
+            sources=SOURCES,
+            current_source=source,
+            current_sentiment=sentiment,
+            interval=CRAWL_INTERVAL_MINUTES,
+            has_ai=bool(DEEPSEEK_API_KEY),
+            now=datetime.now(),
+        )
+        return HTMLResponse(html)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(f"<h1>Error</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 
 @app.get("/article/{article_id}", response_class=HTMLResponse)
 async def article_detail(request: Request, article_id: int):
     article = get_article(article_id)
     if not article:
-        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
-    return templates.TemplateResponse("detail.html", {
-        "request": request,
-        "article": article,
-        "now": datetime.now(),
-    })
+        return HTMLResponse(_jinja_env.get_template("404.html").render(request=request), status_code=404)
+    return HTMLResponse(_jinja_env.get_template("detail.html").render(
+        request=request,
+        article=article,
+        now=datetime.now(),
+    ))
 
 
 @app.get("/search", response_class=HTMLResponse)
@@ -117,24 +134,24 @@ async def search(
         data = {"articles": [], "total": 0, "page": 1, "per_page": 20, "total_pages": 0}
     else:
         data = get_articles(page=page, search=q.strip())
-    return templates.TemplateResponse("search.html", {
-        "request": request,
+    return HTMLResponse(_jinja_env.get_template("search.html").render(
+        request=request,
         **data,
-        "query": q,
-        "now": datetime.now(),
-    })
+        query=q,
+        now=datetime.now(),
+    ))
 
 
 @app.get("/stats", response_class=HTMLResponse)
 async def stats_page(request: Request):
     stats = get_stats()
-    return templates.TemplateResponse("stats.html", {
-        "request": request,
-        "stats": stats,
-        "sources": SOURCES,
-        "has_ai": bool(DEEPSEEK_API_KEY),
-        "now": datetime.now(),
-    })
+    return HTMLResponse(_jinja_env.get_template("stats.html").render(
+        request=request,
+        stats=stats,
+        sources=SOURCES,
+        has_ai=bool(DEEPSEEK_API_KEY),
+        now=datetime.now(),
+    ))
 
 
 # ===== API 路由 =====
