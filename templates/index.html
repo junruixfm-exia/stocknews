@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}📰 股票资讯聚合{% endblock %}
+{% block content %}
+
+<!-- 统计栏 -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-blue-600">{{ stats.total_articles }}</div>
+        <div class="text-xs text-gray-500 mt-1">累计文章</div>
+    </div>
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-green-600">{{ stats.today_articles }}</div>
+        <div class="text-xs text-gray-500 mt-1">今日新增</div>
+    </div>
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-orange-600">{{ stats.sources|length }}</div>
+        <div class="text-xs text-gray-500 mt-1">数据源</div>
+    </div>
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-purple-600">{{ sources|length }}</div>
+        <div class="text-xs text-gray-500 mt-1">自动更新</div>
+    </div>
+</div>
+
+<!-- 筛选栏 -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <a href="/" class="px-3 py-1 rounded-full text-sm {% if not current_source %}bg-blue-500 text-white{% else %}bg-white text-gray-600 border{% endif %}">
+        全部
+    </a>
+    {% for key, src in sources.items() %}
+    {% if src.enabled %}
+    <a href="/?source={{ key }}" class="px-3 py-1 rounded-full text-sm {% if current_source == key %}bg-blue-500 text-white{% else %}bg-white text-gray-600 border{% endif %}">
+        {{ src.name }}
+    </a>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<!-- 新闻列表 -->
+{% if articles %}
+<div class="space-y-3">
+{% for article in articles %}
+<article class="bg-white rounded-lg p-4 shadow-sm article-card cursor-pointer" 
+         onclick="location.href='/article/{{ article.id }}'">
+    <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-base md:text-lg font-medium text-gray-900 leading-snug mb-1">
+                {{ article.title }}
+            </h2>
+            {% if article.summary %}
+            <p class="text-sm text-gray-500 line-clamp-2 mb-2">{{ article.summary[:120] }}</p>
+            {% endif %}
+            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                <span class="source-tag bg-blue-50 text-blue-600">{{ article.source_name }}</span>
+                {% if article.published_at %}
+                <span>{{ article.published_at|string|truncate(16, True, '')|replace('T', ' ') }}</span>
+                {% endif %}
+                {% for tag in article.tags[:3] %}
+                <span class="tag-badge">{{ tag }}</span>
+                {% endfor %}
+                {% if article.related_stocks and article.related_stocks[0] %}
+                <span class="text-xs text-gray-400">{{ article.related_stocks[:3]|join(' ') }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <span class="text-lg flex-shrink-0">
+            {% if article.sentiment == 'positive' %}📈
+            {% elif article.sentiment == 'negative' %}📉
+            {% else %}📊{% endif %}
+        </span>
+    </div>
+</article>
+{% endfor %}
+</div>
+
+<!-- 分页 -->
+{% if total_pages > 1 %}
+<div class="flex justify-center gap-2 mt-8">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}{% if current_source %}&source={{ current_source }}{% endif %}" 
+       class="px-4 py-2 bg-white border rounded hover:bg-gray-50 text-sm">上一页</a>
+    {% endif %}
+    <span class="px-4 py-2 text-sm text-gray-500">第 {{ page }}/{{ total_pages }} 页（共 {{ total }} 篇）</span>
+    {% if page < total_pages %}
+    <a href="?page={{ page + 1 }}{% if current_source %}&source={{ current_source }}{% endif %}" 
+       class="px-4 py-2 bg-white border rounded hover:bg-gray-50 text-sm">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-20 text-gray-400">
+    <div class="text-5xl mb-4">📭</div>
+    <p>暂无文章，正在抓取数据...</p>
+    <p class="text-xs mt-2">首次启动需要等待约30秒完成爬取</p>
+</div>
+{% endif %}
+
+{% endblock %}

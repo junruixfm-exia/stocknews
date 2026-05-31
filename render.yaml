@@ -1,0 +1,25 @@
+# 📰 股票资讯聚合平台 - Render Blueprint
+# 文档: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: stocknews
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: CRAWL_INTERVAL_MINUTES
+        value: "10"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+        # 在 Render Dashboard 中手动设置
+      - key: YAHOO_FINANCE_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+    disk:
+      name: stocknews-data
+      mountPath: /var/data
+      sizeGB: 1

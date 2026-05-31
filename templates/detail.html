@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - 📰 股票资讯{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto">
+    <!-- 面包屑 -->
+    <nav class="text-sm text-gray-400 mb-4">
+        <a href="/" class="hover:text-blue-500">首页</a> &rsaquo; 
+        <span>{{ article.source_name }}</span>
+    </nav>
+
+    <!-- 标题 -->
+    <h1 class="text-xl md:text-2xl font-bold text-gray-900 mb-4">{{ article.title }}</h1>
+    
+    <!-- 元信息 -->
+    <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-6 pb-4 border-b">
+        <span class="source-tag bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{{ article.source_name }}</span>
+        {% if article.published_at %}
+        <span>📅 {{ article.published_at|string|truncate(16, True, '')|replace('T', ' ') }}</span>
+        {% endif %}
+        <span>
+            {% if article.sentiment == 'positive' %}📈 积极
+            {% elif article.sentiment == 'negative' %}📉 消极
+            {% else %}📊 中性{% endif %}
+        </span>
+    </div>
+
+    <!-- 标签 -->
+    {% if article.tags %}
+    <div class="flex flex-wrap gap-1 mb-4">
+        {% for tag in article.tags %}
+        <span class="tag-badge">{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 关联股票 -->
+    {% if article.related_stocks and article.related_stocks|length > 0 and article.related_stocks[0] != '' %}
+    <div class="bg-gray-50 rounded-lg p-3 mb-6 text-sm">
+        <span class="text-gray-500">📌 关联股票：</span>
+        {% for stock in article.related_stocks %}
+        <code class="bg-white px-2 py-0.5 rounded border text-xs">{{ stock }}</code>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 摘要 -->
+    {% if article.summary %}
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r mb-6 text-gray-700 leading-relaxed">
+        {{ article.summary }}
+    </div>
+    {% endif %}
+
+    <!-- 正文 -->
+    {% if article.content %}
+    <div class="prose max-w-none text-gray-800 leading-relaxed whitespace-pre-line">
+        {{ article.content }}
+    </div>
+    {% endif %}
+
+    <!-- 原文链接 -->
+    <div class="mt-8 pt-4 border-t">
+        <a href="{{ article.url }}" target="_blank" rel="noopener" 
+           class="text-blue-500 hover:text-blue-700 text-sm">
+            🔗 查看原文 →
+        </a>
+    </div>
+
+    <!-- 返回 -->
+    <div class="mt-8">
+        <a href="/" class="text-gray-400 hover:text-gray-600 text-sm">← 返回列表</a>
+    </div>
+</div>
+
+{% endblock %}

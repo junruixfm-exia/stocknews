@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}搜索: {{ query }} - 📰 股票资讯{% endblock %}
+{% block content %}
+
+<div class="mb-6">
+    <form action="/search" method="get" class="flex max-w-md">
+        <input type="text" name="q" value="{{ query }}" placeholder="搜索股票、关键词..."
+               class="flex-1 border rounded-l px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600">
+            搜索
+        </button>
+    </form>
+</div>
+
+{% if query %}
+<div class="mb-4 text-sm text-gray-500">
+    搜索 "{{ query }}" 找到 {{ total }} 条结果
+</div>
+
+{% if articles %}
+<div class="space-y-3">
+{% for article in articles %}
+<article class="bg-white rounded-lg p-4 shadow-sm article-card cursor-pointer" 
+         onclick="location.href='/article/{{ article.id }}'">
+    <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-base font-medium text-gray-900 mb-1">{{ article.title }}</h2>
+            {% if article.summary %}
+            <p class="text-sm text-gray-500 line-clamp-2 mb-2">{{ article.summary[:150] }}</p>
+            {% endif %}
+            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                <span class="source-tag bg-blue-50 text-blue-600">{{ article.source_name }}</span>
+                {% if article.published_at %}
+                <span>{{ article.published_at|string|truncate(16, True, '')|replace('T', ' ') }}</span>
+                {% endif %}
+                {% for tag in article.tags[:3] %}
+                <span class="tag-badge">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</article>
+{% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex justify-center gap-2 mt-8">
+    {% if page > 1 %}
+    <a href="?q={{ query }}&page={{ page - 1 }}" class="px-4 py-2 bg-white border rounded hover:bg-gray-50 text-sm">上一页</a>
+    {% endif %}
+    <span class="px-4 py-2 text-sm text-gray-500">{{ page }}/{{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="?q={{ query }}&page={{ page + 1 }}" class="px-4 py-2 bg-white border rounded hover:bg-gray-50 text-sm">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-20 text-gray-400">
+    <div class="text-5xl mb-4">🔍</div>
+    <p>没有找到相关结果</p>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-20 text-gray-400">
+    <div class="text-5xl mb-4">🔍</div>
+    <p>输入关键词搜索资讯</p>
+</div>
+{% endif %}
+
+{% endblock %}

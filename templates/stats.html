@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}统计 - 📰 股票资讯{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">📊 数据统计</h1>
+
+    <!-- 概览 -->
+    <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-lg p-4 shadow-sm text-center">
+            <div class="text-3xl font-bold text-blue-600">{{ stats.total_articles }}</div>
+            <div class="text-xs text-gray-500 mt-1">累计文章</div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow-sm text-center">
+            <div class="text-3xl font-bold text-green-600">{{ stats.today_articles }}</div>
+            <div class="text-xs text-gray-500 mt-1">今日新增</div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow-sm text-center">
+            <div class="text-3xl font-bold text-purple-600">{{ stats.sources|length }}</div>
+            <div class="text-xs text-gray-500 mt-1">活跃数据源</div>
+        </div>
+    </div>
+
+    <!-- 各来源 -->
+    <div class="bg-white rounded-lg p-4 shadow-sm mb-6">
+        <h2 class="text-lg font-semibold mb-3">📡 数据来源分布</h2>
+        <div class="space-y-2">
+            {% for src in stats.sources %}
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">{{ src.source_name }}</span>
+                <div class="flex items-center gap-2">
+                    <div class="w-32 bg-gray-100 rounded-full h-2">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: {{ (src.cnt / stats.sources[0].cnt * 100)|int }}%"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 w-8 text-right">{{ src.cnt }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 情感分析 -->
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+        <h2 class="text-lg font-semibold mb-3">😊 情感分布</h2>
+        <div class="flex gap-6">
+            {% for s in stats.sentiment %}
+            <div class="text-center">
+                <div class="text-2xl font-bold
+                    {% if s.sentiment == 'positive' %}text-red-500
+                    {% elif s.sentiment == 'negative' %}text-green-500
+                    {% else %}text-gray-400{% endif %}
+                ">{{ s.cnt }}</div>
+                <div class="text-xs text-gray-500">
+                    {% if s.sentiment == 'positive' %}📈 积极
+                    {% elif s.sentiment == 'negative' %}📉 消极
+                    {% else %}📊 中性{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="/" class="text-blue-500 hover:text-blue-700 text-sm">← 返回首页</a>
+    </div>
+</div>
+
+{% endblock %}
