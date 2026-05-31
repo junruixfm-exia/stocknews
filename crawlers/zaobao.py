@@ -142,4 +142,15 @@ class ZaobaoCrawler(BaseCrawler):
             except Exception as e:
                 print(f"[联合早报] {category} 失败: {e}")
 
+        # 清理旧数据，仅保留本次抓取的财经文章
+        if articles:
+            try:
+                from models import get_db
+                conn = get_db()
+                conn.execute("DELETE FROM articles WHERE source = 'zaobao'")
+                conn.commit()
+                conn.close()
+            except:
+                pass
+
         return articles
