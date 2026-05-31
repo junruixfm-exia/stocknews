@@ -22,6 +22,11 @@ class XueqiuCrawler(BaseCrawler):
             self.client.get("https://xueqiu.com", timeout=15)
         except:
             pass
+        self._enabled = False  # Render US IP 被墙，默认禁用
+    
+    @property
+    def enabled(self):
+        return self._enabled
     
     def fetch(self) -> List[dict]:
         articles = []
