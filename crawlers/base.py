@@ -1,12 +1,15 @@
 # 爬虫基类 & 工具函数
 import re
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from abc import ABC, abstractmethod
 from typing import List
 
 import httpx
 from bs4 import BeautifulSoup
+
+# 北京时间
+CST = timezone(timedelta(hours=8))
 
 
 class BaseCrawler(ABC):
@@ -30,6 +33,18 @@ class BaseCrawler(ABC):
     def fetch(self) -> List[dict]:
         """抓取文章列表，返回标准化 dict 列表"""
         ...
+    
+    @staticmethod
+    def now_cst() -> str:
+        """返回北京时间 ISO 格式"""
+        return datetime.now(CST).isoformat()
+    
+    @staticmethod
+    def ts_to_cst(timestamp: int | float) -> str:
+        """Unix 时间戳 → 北京时间 ISO 格式"""
+        if timestamp > 1e12:
+            timestamp = timestamp / 1000
+        return datetime.fromtimestamp(int(timestamp), CST).isoformat()
     
     def make_article(self, title: str, url: str, summary="", content="",
                      tags=None, related_stocks=None, published_at=None) -> dict:

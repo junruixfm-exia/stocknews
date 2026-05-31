@@ -1,9 +1,4 @@
-"""
-华尔街见闻 (wallstreetcn.com) - API 抓取
-免费，无需 API Key
-"""
 from typing import List
-from datetime import datetime
 from .base import BaseCrawler
 
 
@@ -26,9 +21,7 @@ class WallstreetcnCrawler(BaseCrawler):
                 data = resp.json()
                 items = data.get("data", {}).get("items", [])
                 for item in items:
-                    pub_time = datetime.fromtimestamp(
-                        item.get("display_time", 0)
-                    ).isoformat()
+                    pub_time = self.ts_to_cst(item.get("display_time", 0))
                     title = item.get("title", "") or item.get("content_text", "")[:50]
                     articles.append(self.make_article(
                         title=title,
@@ -50,9 +43,7 @@ class WallstreetcnCrawler(BaseCrawler):
                 data = resp.json()
                 items = data.get("data", {}).get("day_items", [])
                 for item in items:
-                    pub_time = datetime.fromtimestamp(
-                        item.get("display_time", 0)
-                    ).isoformat()
+                    pub_time = self.ts_to_cst(item.get("display_time", 0))
                     articles.append(self.make_article(
                         title=item.get("title", ""),
                         url=f"https://wallstreetcn.com/articles/{item.get('id', '')}",

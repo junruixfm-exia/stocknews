@@ -5,7 +5,6 @@ CLS 反爬升级后需要签名，改用移动站 m.cls.cn 的内嵌 JSON
 import re
 import json
 from typing import List
-from datetime import datetime
 from .base import BaseCrawler
 
 
@@ -64,14 +63,12 @@ class CLSCrawler(BaseCrawler):
                 if not title or len(title) < 5:
                     continue
 
-                # 时间戳（秒）
+                # 时间戳（秒）→ 北京时间
                 ctime = item.get("ctime", item.get("modified_time", 0))
-                if isinstance(ctime, (int, float)):
-                    if ctime > 1e12:
-                        ctime = ctime / 1000
-                    pub_time = datetime.fromtimestamp(int(ctime)).isoformat()
+                if ctime:
+                    pub_time = self.ts_to_cst(ctime)
                 else:
-                    pub_time = datetime.now().isoformat()
+                    pub_time = self.now_cst()
 
                 article_id = item.get("id", "")
                 url = f"https://www.cls.cn/detail/{article_id}" if article_id else "https://www.cls.cn/telegraph"

@@ -46,18 +46,17 @@ class CNBCCrawler(BaseCrawler):
                     display_title = f"[EN] {title}"
                     summary = f"📰 {cn_title}" if cn_title else ""
 
-                    # 发布时间
+                    # 发布时间（CNBC RSS 时间转北京时间）
                     pub_time = None
                     if hasattr(entry, "published_parsed") and entry.published_parsed:
                         try:
-                            from time import mktime
-                            pub_time = datetime.fromtimestamp(
-                                mktime(entry.published_parsed)
-                            ).isoformat()
+                            from calendar import timegm
+                            ts = timegm(entry.published_parsed)
+                            pub_time = self.ts_to_cst(ts)
                         except Exception:
                             pass
                     if not pub_time:
-                        pub_time = datetime.now(timezone.utc).isoformat()
+                        pub_time = self.now_cst()
 
                     link = entry.get("link", "")
 

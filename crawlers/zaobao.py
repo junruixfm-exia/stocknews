@@ -4,8 +4,8 @@
 """
 import re
 from typing import List
-from datetime import datetime, timedelta
-from .base import BaseCrawler
+from datetime import datetime, timezone, timedelta
+from .base import BaseCrawler, CST
 
 
 # 财经关键词过滤
@@ -98,7 +98,8 @@ class ZaobaoCrawler(BaseCrawler):
                         title = title[len(time_str):].strip()
                         try:
                             hour, minute = map(int, time_str.split(":"))
-                            now = datetime.now()
+                            # 北京时间（新加坡与北京同属 UTC+8）
+                            now = datetime.now(CST)
                             pub_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
                             if pub_time > now:
                                 pub_time = pub_time - timedelta(days=1)
@@ -112,13 +113,14 @@ class ZaobaoCrawler(BaseCrawler):
                             try:
                                 date_str = date_match.group(1)
                                 pub_time = datetime.strptime(date_str, "%Y%m%d")
+                                pub_time = pub_time.replace(tzinfo=CST)
                                 # 只保留 7 天内的文章
-                                if (datetime.now() - pub_time) > timedelta(days=7):
+                                if (datetime.now(CST) - pub_time) > timedelta(days=7):
                                     continue
                             except ValueError:
-                                pub_time = datetime.now()
+                                pub_time = datetime.now(CST)
                         else:
-                            pub_time = datetime.now()
+                            pub_time = datetime.now(CST)
 
                     url = f"https://www.zaobao.com{href}"
 

@@ -5,7 +5,6 @@
 import re
 import json
 from typing import List
-from datetime import datetime
 from .base import BaseCrawler
 
 
@@ -63,12 +62,12 @@ class News36krCrawler(BaseCrawler):
                 if not title or len(title) < 5:
                     continue
 
-                # publishTime 是毫秒时间戳
+                # publishTime 是毫秒时间戳 → 北京时间
                 pub_ms = tm.get("publishTime", 0)
-                if isinstance(pub_ms, (int, float)) and pub_ms > 0:
-                    pub_time = datetime.fromtimestamp(pub_ms / 1000).isoformat()
+                if pub_ms:
+                    pub_time = self.ts_to_cst(pub_ms)
                 else:
-                    pub_time = datetime.now().isoformat()
+                    pub_time = self.now_cst()
 
                 item_id = item.get("itemId", "")
                 url = f"https://36kr.com/newsflashes/{item_id}" if item_id else "https://36kr.com/newsflashes"
