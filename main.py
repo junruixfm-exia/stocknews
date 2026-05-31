@@ -276,7 +276,17 @@ async def api_ai_summarize():
             global _ai_summary_running, _ai_summary_progress
             try:
                 from ai_summary import summarizer
+                # 1. 文章摘要
                 count = summarizer.batch_summarize(max_count=50)
+                _ai_summary_progress = {"processed": count, "total": pending, "done": False}
+                # 2. 生成热度分析 digest
+                try:
+                    from models import get_articles
+                    articles = get_articles(page=1, per_page=80, max_age_hours=24)["articles"]
+                    if articles:
+                        summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
+                except Exception:
+                    pass
                 _ai_summary_progress = {"processed": count, "total": pending, "done": True}
             except Exception as e:
                 _ai_summary_progress = {"processed": 0, "total": pending, "done": True, "error": str(e)}

@@ -238,15 +238,18 @@
                                 clearInterval(pollInterval);
                                 const count = s.progress.processed;
                                 if (s.progress.error) {
-                                    showToast('❌ AI 摘要出错');
+                                    showToast('❌ AI 处理出错');
                                 } else {
-                                    showToast(`✅ AI 已处理 ${count} 篇文章`);
+                                    showToast(`✅ 摘要 ${count} 篇 · 热度分析已更新`);
                                 }
                                 btn.disabled = false;
                                 btn.classList.remove('opacity-50');
                                 icon.textContent = '🤖';
                                 updatePendingCount();
                                 setTimeout(() => location.reload(), 1500);
+                            } else if (s.progress.processed > 0) {
+                                // 摘要完成，正在生成热度分析
+                                showToast(`🔥 正在生成热度分析...`);
                             }
                         } catch(e) {
                             clearInterval(pollInterval);
