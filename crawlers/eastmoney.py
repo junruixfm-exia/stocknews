@@ -34,7 +34,7 @@ class EastmoneyCrawler(BaseCrawler):
                 if resp.status_code != 200:
                     continue
 
-                # 匹配新闻链接: <a href="/a/xxx.html">标题</a>
+                # 匹配新闻链接
                 pattern = re.compile(
                     r'<a[^>]*href="(https?://finance\.eastmoney\.com/a/[^"]+\.html)"[^>]*>(.{10,100}?)</a>',
                     re.DOTALL,
@@ -65,5 +65,16 @@ class EastmoneyCrawler(BaseCrawler):
 
             except Exception as e:
                 print(f"[东方财富] {category} 失败: {e}")
+
+        # 清理旧数据，用新数据替换（修复时间戳问题）
+        if articles:
+            try:
+                from models import get_db
+                conn = get_db()
+                conn.execute("DELETE FROM articles WHERE source = 'eastmoney'")
+                conn.commit()
+                conn.close()
+            except:
+                pass
 
         return articles
