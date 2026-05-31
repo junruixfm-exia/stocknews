@@ -234,12 +234,19 @@ async def api_crawl_status():
     }
 
 
+# AI 摘要后台处理状态
+_ai_summary_running = False
+_ai_summary_progress = {"processed": 0, "total": 0, "done": False}
+
+
 @app.post("/api/ai/summarize")
 async def api_ai_summarize():
-    """手动触发 AI 批量摘要"""
+    """手动触发 AI 批量摘要（后台处理，立即返回）"""
+    global _ai_summary_running, _ai_summary_progress
+    
     import traceback
+    import threading
     try:
-        from ai_summary import summarizer
         import sqlite3
         from models import DB_PATH
         
@@ -247,7 +254,10 @@ async def api_ai_summarize():
         if not DEEPSEEK_API_KEY:
             return {"status": "error", "message": "未配置 DEEPSEEK_API_KEY"}
         
-        # 先查询待处理数量
+        if _ai_summary_running:
+            return {"status": "running", "progress": _ai_summary_progress}
+        
+        # 查询待处理数量
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         pending = conn.execute(
@@ -258,15 +268,40 @@ async def api_ai_summarize():
         if pending == 0:
             return {"status": "ok", "processed": 0, "message": "没有需要处理的文章"}
         
-        count = summarizer.batch_summarize(max_count=50)
+        # 后台处理
+        _ai_summary_running = True
+        _ai_summary_progress = {"processed": 0, "total": pending, "done": False}
+        
+        def _run():
+            global _ai_summary_running, _ai_summary_progress
+            try:
+                from ai_summary import summarizer
+                count = summarizer.batch_summarize(max_count=50)
+                _ai_summary_progress = {"processed": count, "total": pending, "done": True}
+            except Exception as e:
+                _ai_summary_progress = {"processed": 0, "total": pending, "done": True, "error": str(e)}
+            finally:
+                _ai_summary_running = False
+        
+        threading.Thread(target=_run, daemon=True).start()
         return {
-            "status": "ok",
-            "processed": count,
-            "pending_before": pending,
-            "remaining": pending - count,
+            "status": "started",
+            "message": f"后台处理中 ({pending} 篇待摘要)",
+            "pending": pending,
         }
     except Exception as e:
-        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()[-500:]}
+        _ai_summary_running = False
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()[-300:]}
+
+
+@app.get("/api/ai/summarize/status")
+async def api_ai_summarize_status():
+    """查询 AI 摘要处理进度"""
+    global _ai_summary_running, _ai_summary_progress
+    return {
+        "running": _ai_summary_running,
+        "progress": _ai_summary_progress,
+    }
 
 
 @app.get("/api/ai/pending")
