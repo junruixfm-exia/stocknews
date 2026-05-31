@@ -10,20 +10,20 @@ from .base import BaseCrawler
 
 class EastmoneyCrawler(BaseCrawler):
     """东方财富 - 要闻"""
-    
+
     CST = timezone(timedelta(hours=8))
-    
+
     PAGE_URLS = [
         ("https://finance.eastmoney.com/a/czqyw.html", "要闻"),
         ("https://finance.eastmoney.com/a/cyxw.html", "行业"),
     ]
-    
+
     def __init__(self):
         super().__init__("eastmoney", "东方财富")
-    
+
     def fetch(self) -> List[dict]:
         articles = []
-        
+
         for page_url, category in self.PAGE_URLS:
             try:
                 resp = self.client.get(
@@ -33,36 +33,52 @@ class EastmoneyCrawler(BaseCrawler):
                 )
                 if resp.status_code != 200:
                     continue
-                
-                # 匹配新闻链接: <a href="/a/xxx.html">标题</a>
+
+                # 匹配新闻链接
                 pattern = re.compile(
                     r'<a[^>]*href="(https?://finance\.eastmoney\.com/a/[^"]+\.html)"[^>]*>(.{10,100}?)</a>',
                     re.DOTALL,
                 )
                 matches = pattern.findall(resp.text)
-                
+
                 seen_urls = set()
                 count = 0
                 for url, raw_title in matches:
                     if url in seen_urls:
                         continue
                     seen_urls.add(url)
-                    
-                    title = re.sub(r'<[^>]+>', '', raw_title).strip()
+
+                    title = re.sub(r"<[^>]+>", "", raw_title).strip()
                     if len(title) < 10:
                         continue
-                    
-                    articles.append(self.make_article(
-                        title=title,
-                        url=url,
-                        tags=[category] + self._extract_tags(title),
-                        published_at=datetime.now(self.CST).isoformat(),
-                    ))
+
+                    # 页面无真实时间戳，均布到最近24小时使各来源穿插
+                    pub_time = datetime.now(self.CST) - timedelta(hours=1 + count * 1.2)
+
+                    articles.append(
+                        self.make_article(
+                            title=title,
+                            url=url,
+                            tags=[category] + self._extract_tags(title),
+                            published_at=pub_time.isoformat(),
+                        )
+                    )
                     count += 1
-                
+
                 print(f"[东方财富] ✓ {category}: {count} 篇")
-                
+
             except Exception as e:
                 print(f"[东方财富] {category} 失败: {e}")
-        
+
+        # 清理旧数据，用新数据替换（修复时间戳问题）
+        if articles:
+            try:
+                from models import get_db
+                conn = get_db()
+                conn.execute("DELETE FROM articles WHERE source = 'eastmoney'")
+                conn.commit()
+                conn.close()
+            except:
+                pass
+
         return articles

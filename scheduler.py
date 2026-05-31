@@ -20,8 +20,7 @@ from crawlers.sina import SinaCrawler
 from crawlers.jin10 import Jin10Crawler
 from crawlers.news_36kr import News36krCrawler
 from crawlers.cnbc import CNBCCrawler
-from crawlers.marketwatch import MarketWatchCrawler
-from crawlers.wsj import WSJCrawler
+from crawlers.zaobao import ZaobaoCrawler
 from crawlers.yahoo import YahooCrawler
 from crawlers.finnhub import FinnhubCrawler
 
@@ -56,8 +55,7 @@ def crawl_all_sources():
         ("金十数据", Jin10Crawler()),
         ("36氪", News36krCrawler()),
         ("CNBC", CNBCCrawler()),
-        ("MarketWatch", MarketWatchCrawler()),
-        ("WSJ", WSJCrawler()),
+        ("联合早报", ZaobaoCrawler()),
         ("Yahoo Finance", YahooCrawler()),
         ("Finnhub", FinnhubCrawler()),
     ]
