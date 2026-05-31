@@ -221,10 +221,13 @@ class AISummarizer:
         if not DEEPSEEK_API_KEY or not articles:
             return {"error": "无 API Key 或无文章数据", "topics": [], "summary": ""}
         
-        # 构建标题列表
+        # 构建标题列表（限制数量避免超 token）
         title_list = []
-        for i, a in enumerate(articles[:100]):  # 最多 100 篇
-            title_list.append(f"[{i+1}] [{a.get('source_name', '?')}] {a.get('title', '')}")
+        for i, a in enumerate(articles[:80]):  # 最多 80 篇
+            title = a.get('title', '')
+            if len(title) > 60:
+                title = title[:60] + '...'
+            title_list.append(f"[{i+1}] [{a.get('source_name', '?')}] {title}")
         
         titles_text = "\n".join(title_list)
         
@@ -269,7 +272,7 @@ class AISummarizer:
                     "model": self.MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 4000,
+                    "max_tokens": 8000,
                 },
             )
             
@@ -285,7 +288,23 @@ class AISummarizer:
                 content = msg.get("reasoning_content", "") or ""
             if not content.strip():
                 return {"error": "模型返回空内容", "topics": [], "summary": ""}
-            result = json.loads(content)
+            # 处理可能被截断的 JSON
+            try:
+                result = json.loads(content)
+            except json.JSONDecodeError:
+                # 尝试补全截断的 JSON
+                content_fixed = content.rstrip()
+                # 找到最后一个完整的对象/数组结束
+                for end_char in ['"}', '"]', '}', ']']:
+                    last_idx = content_fixed.rfind(end_char)
+                    if last_idx > 0:
+                        content_fixed = content_fixed[:last_idx + len(end_char)]
+                        break
+                try:
+                    result = json.loads(content_fixed)
+                    print(f"[Digest] JSON 被截断，已修复")
+                except json.JSONDecodeError as e2:
+                    return {"error": f"JSON 解析失败: {str(e2)[:100]}", "topics": [], "summary": ""}
             result["generated_at"] = __import__("datetime").datetime.now().isoformat()
             result["total_topics"] = len(result.get("topics", []))
             
