@@ -311,7 +311,9 @@ class AISummarizer:
                     print(f"[Digest] JSON 被截断，已修复")
                 except json.JSONDecodeError as e2:
                     return {"error": f"JSON 解析失败: {str(e2)[:100]}", "topics": [], "summary": ""}
-            result["generated_at"] = __import__("datetime").datetime.now().isoformat()
+            result["generated_at"] = __import__("datetime").datetime.now(
+                __import__("datetime").timezone(__import__("datetime").timedelta(hours=8))
+            ).isoformat()
             result["total_topics"] = len(result.get("topics", []))
             
             # 写入内存缓存（30分钟有效）
