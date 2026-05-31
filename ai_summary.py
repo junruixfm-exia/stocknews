@@ -19,10 +19,10 @@ class AISummarizer:
     """AI 文章摘要器"""
     
     API_URL = "https://api.deepseek.com/chat/completions"
-    MODEL = "deepseek-chat"
+    MODEL = "deepseek-v4-pro"
     
     def __init__(self):
-        self.client = httpx.Client(timeout=60)
+        self.client = httpx.Client(timeout=120)
         self.cache_db = str(DATA_DIR / "ai_cache.db")
         self._init_cache()
     
