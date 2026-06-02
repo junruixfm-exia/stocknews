@@ -419,7 +419,7 @@ async def api_digest_image():
 
 @app.post("/api/digest/push")
 async def api_digest_push():
-    """推送热点榜到企业微信（先 Markdown 摘要 + 后图片卡片）"""
+    """推送热点榜到企业微信（仅图片卡片）"""
     import traceback
     try:
         from wecom_push import push_digest
