@@ -104,8 +104,7 @@ async def index(
         data = get_articles(page=page, per_page=50, source=source, sentiment=sentiment)
         stats = get_stats()
         
-        # 获取 AI Digest（缓存30分钟，避免每次请求都调 API）
-        # 缓存未命中时跳过，由调度器后台预生成
+        # 获取 AI Digest（缓存30分钟，仅显示缓存，不自动生成）
         digest = None
         if DEEPSEEK_API_KEY:
             try:
@@ -113,17 +112,6 @@ async def index(
                 cache = summarizer._digest_cache
                 if cache and (time.time() - cache["timestamp"]) < 1800:
                     digest = cache["result"]
-                else:
-                    # 后台触发生成，本次请求不等待
-                    import threading
-                    def _gen():
-                        try:
-                            articles = data["articles"][:80]
-                            if articles:
-                                summarizer.get_digest(articles, max_age_seconds=0)
-                        except Exception:
-                            pass
-                    threading.Thread(target=_gen, daemon=True).start()
             except Exception:
                 pass
         
