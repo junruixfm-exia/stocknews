@@ -9,7 +9,7 @@ from datetime import datetime
 
 from config import CRAWL_INTERVAL_MINUTES
 from models import init_db, save_article, log_crawl, get_db
-from ai_summary import summarizer
+
 
 logger = logging.getLogger("stocknews.scheduler")
 
@@ -132,22 +132,7 @@ def _crawl_all_sources_impl():
     global _last_crawl_time
     _last_crawl_time = time.time()
 
-    # AI 摘要改为手动触发，不再自动运行
-    # （节省 DeepSeek API 费用，用户可按需点击按钮触发）
-
-    # AI Digest 预生成（后台线程，不阻塞）
-    if total_new > 0:
-        import threading
-        def _gen_digest():
-            try:
-                from models import get_articles
-                articles = get_articles(page=1, per_page=100, max_age_hours=24)["articles"]
-                if articles:
-                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
-                    print(f"  🔥 Digest: 已更新")
-            except Exception as e:
-                print(f"  🔥 Digest: {e}")
-        threading.Thread(target=_gen_digest, daemon=True).start()
+    # AI 摘要和 Digest 均改为手动触发，不再自动运行
 
     # WebSocket 推送新文章
     if total_new > 0 and ws_clients:
