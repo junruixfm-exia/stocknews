@@ -286,7 +286,7 @@ _ai_summary_progress = {"processed": 0, "total": 0, "done": False}
 
 @app.post("/api/ai/summarize")
 async def api_ai_summarize():
-    """手动触发 AI 批量摘要（后台处理，立即返回）"""
+    """手动触发 AI 批量摘要 + 热点榜（后台处理，立即返回）"""
     global _ai_summary_running, _ai_summary_progress
     
     import traceback
@@ -310,38 +310,32 @@ async def api_ai_summarize():
         ).fetchone()["cnt"]
         conn.close()
         
-        if pending == 0:
-            return {"status": "ok", "processed": 0, "message": "没有需要处理的文章"}
-        
-        # 后台处理
         _ai_summary_running = True
-        _ai_summary_progress = {"processed": 0, "total": pending, "done": False}
+        _ai_summary_progress = {"processed": 0, "total": max(pending, 1), "done": False}
         
         def _run():
             global _ai_summary_running, _ai_summary_progress
             try:
                 from ai_summary import summarizer
-                # 1. 文章摘要
-                count = summarizer.batch_summarize(max_count=50)
-                _ai_summary_progress = {"processed": count, "total": pending, "done": False}
-                # 2. 生成热度分析 digest
-                try:
-                    from models import get_articles
-                    articles = get_articles(page=1, per_page=80, max_age_hours=24)["articles"]
-                    if articles:
-                        summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
-                except Exception:
-                    pass
-                _ai_summary_progress = {"processed": count, "total": pending, "done": True}
+                # 1. 文章摘要（如果有待处理的）
+                count = 0
+                if pending > 0:
+                    count = summarizer.batch_summarize(max_count=50)
+                # 2. 生成热度分析 digest（始终执行）
+                from models import get_articles
+                articles = get_articles(page=1, per_page=300, max_age_hours=24)["articles"]
+                if articles:
+                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
+                _ai_summary_progress = {"processed": count, "total": max(pending, 1), "done": True}
             except Exception as e:
-                _ai_summary_progress = {"processed": 0, "total": pending, "done": True, "error": str(e)}
+                _ai_summary_progress = {"processed": 0, "total": max(pending, 1), "done": True, "error": str(e)}
             finally:
                 _ai_summary_running = False
         
         threading.Thread(target=_run, daemon=True).start()
         return {
             "status": "started",
-            "message": f"后台处理中 ({pending} 篇待摘要)",
+            "message": "后台处理中（摘要 + 热度分析）",
             "pending": pending,
         }
     except Exception as e:
