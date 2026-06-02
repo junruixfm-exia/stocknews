@@ -235,9 +235,9 @@ class AISummarizer:
         if not DEEPSEEK_API_KEY or not articles:
             return {"error": "无 API Key 或无文章数据", "topics": [], "summary": ""}
         
-        # 构建标题列表（限制数量避免超 token）
+        # 构建标题列表
         title_list = []
-        for i, a in enumerate(articles[:150]):  # 最多 150 篇
+        for i, a in enumerate(articles[:300]):  # 最多 300 篇
             title = a.get('title', '')
             if len(title) > 60:
                 title = title[:60] + '...'
@@ -277,8 +277,8 @@ class AISummarizer:
 {titles_text}
 """
         
-        # max_tokens 固定 16000（article_ids 需要更多输出空间）
-        dynamic_max_tokens = 16000
+        # max_tokens 32000（article_ids 需要大量输出空间）
+        dynamic_max_tokens = 32000
         
         try:
             resp = self.client.post(
@@ -356,6 +356,16 @@ class AISummarizer:
                 save_digest_cache(result)
             except Exception as e:
                 print(f"[Digest] 持久化缓存失败: {e}")
+
+            # 后台推送到企业微信（不阻塞返回）
+            import threading
+            def _push():
+                try:
+                    from wecom_push import push_digest
+                    push_digest(result)
+                except Exception:
+                    pass
+            threading.Thread(target=_push, daemon=True).start()
             
             return result
             
