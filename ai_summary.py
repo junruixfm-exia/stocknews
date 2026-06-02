@@ -369,7 +369,8 @@ class AISummarizer:
                 except Exception as ex:
                     print(f"[Digest] 微信推送失败: {ex}")
                     _tb.print_exc()
-            threading.Thread(target=_push, daemon=True).start()
+            t = threading.Thread(target=_push)
+            t.start()
             
             return result
             
