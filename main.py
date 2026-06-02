@@ -289,43 +289,29 @@ async def api_ai_summarize():
         
         if _ai_summary_running:
             return {"status": "running", "progress": _ai_summary_progress}
-        
-        # 查询待处理数量
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        pending = conn.execute(
-            "SELECT COUNT(*) as cnt FROM articles WHERE summary = '' OR summary IS NULL"
-        ).fetchone()["cnt"]
-        conn.close()
-        
+
         _ai_summary_running = True
-        _ai_summary_progress = {"processed": 0, "total": max(pending, 1), "done": False}
-        
+        _ai_summary_progress = {"processed": 0, "total": 1, "done": False}
+
         def _run():
             global _ai_summary_running, _ai_summary_progress
             try:
                 from ai_summary import summarizer
-                # 1. 文章摘要（如果有待处理的）
-                count = 0
-                if pending > 0:
-                    count = summarizer.batch_summarize(max_count=100)
-                # 2. 生成热度分析 digest（始终执行）
                 from models import get_articles
                 articles = get_articles(page=1, per_page=300, max_age_hours=24)["articles"]
                 if articles:
-                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新（内含微信推送）
-                _ai_summary_progress = {"processed": count, "total": max(pending, 1), "done": True}
+                    summarizer.get_digest(articles, max_age_seconds=0)
+                _ai_summary_progress = {"processed": len(articles), "total": len(articles), "done": True}
             except Exception as e:
-                _ai_summary_progress = {"processed": 0, "total": max(pending, 1), "done": True, "error": str(e)}
+                _ai_summary_progress = {"processed": 0, "total": 1, "done": True, "error": str(e)}
             finally:
                 _ai_summary_running = False
-        
+
         t = threading.Thread(target=_run)
         t.start()
         return {
             "status": "started",
-            "message": "后台处理中（摘要 + 热度分析）",
-            "pending": pending,
+            "message": "后台处理中（热度分析）",
         }
     except Exception as e:
         _ai_summary_running = False
