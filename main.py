@@ -320,7 +320,7 @@ async def api_ai_summarize():
                 # 1. 文章摘要（如果有待处理的）
                 count = 0
                 if pending > 0:
-                    count = summarizer.batch_summarize(max_count=50)
+                    count = summarizer.batch_summarize(max_count=100)
                 # 2. 生成热度分析 digest（始终执行）
                 from models import get_articles
                 articles = get_articles(page=1, per_page=300, max_age_hours=24)["articles"]
