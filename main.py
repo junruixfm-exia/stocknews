@@ -339,7 +339,8 @@ async def api_ai_summarize():
             finally:
                 _ai_summary_running = False
         
-        threading.Thread(target=_run, daemon=True).start()
+        t = threading.Thread(target=_run)
+        t.start()
         return {
             "status": "started",
             "message": "后台处理中（摘要 + 热度分析）",
