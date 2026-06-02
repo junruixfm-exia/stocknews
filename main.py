@@ -325,14 +325,7 @@ async def api_ai_summarize():
                 from models import get_articles
                 articles = get_articles(page=1, per_page=300, max_age_hours=24)["articles"]
                 if articles:
-                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新
-                    # 3. 推送到企业微信
-                    try:
-                        from wecom_push import push_digest
-                        push_result = push_digest()
-                        print(f"[AI] 微信推送结果: {push_result}")
-                    except Exception as pe:
-                        print(f"[AI] 微信推送异常: {pe}")
+                    summarizer.get_digest(articles, max_age_seconds=0)  # 强制刷新（内含微信推送）
                 _ai_summary_progress = {"processed": count, "total": max(pending, 1), "done": True}
             except Exception as e:
                 _ai_summary_progress = {"processed": 0, "total": max(pending, 1), "done": True, "error": str(e)}
