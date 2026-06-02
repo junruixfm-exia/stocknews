@@ -359,12 +359,16 @@ class AISummarizer:
 
             # 后台推送到企业微信（不阻塞返回）
             import threading
+            import traceback as _tb
             def _push():
                 try:
                     from wecom_push import push_digest
-                    push_digest(result)
-                except Exception:
-                    pass
+                    print("[Digest] 开始推送微信...")
+                    push_result = push_digest(result)
+                    print(f"[Digest] 微信推送结果: {push_result}")
+                except Exception as ex:
+                    print(f"[Digest] 微信推送失败: {ex}")
+                    _tb.print_exc()
             threading.Thread(target=_push, daemon=True).start()
             
             return result
