@@ -5,9 +5,11 @@
 """
 import io
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+
+CST = timezone(timedelta(hours=8))
 
 FONT_DIR = Path(__file__).parent / "static" / "fonts"
 FONT_REGULAR = str(FONT_DIR / "NotoSansSC-Regular.otf")
@@ -85,8 +87,8 @@ def _draw_gradient_header(draw: ImageDraw.Draw, img: Image.Image, w: int) -> Non
     draw.text((PADDING, 20), "🔥 AI 财经热点", fill="white", font=font_title)
     draw.text((PADDING, 62), "DeepSeek 智能分析 24h 新闻 · 按热度排名", fill=(255, 255, 255), font=font_sub)
 
-    # 右侧时间
-    now_str = datetime.now().strftime("%m/%d %H:%M")
+    # 右侧时间（北京时间）
+    now_str = datetime.now(CST).strftime("%m/%d %H:%M")
     bbox = draw.textbbox((0, 0), now_str, font=font_sub)
     tw = bbox[2] - bbox[0]
     draw.text((w - PADDING - tw, 62), now_str, fill=(255, 255, 255), font=font_sub)
