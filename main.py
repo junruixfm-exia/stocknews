@@ -393,7 +393,7 @@ async def digest_page(request: Request):
 
 @app.get("/api/digest")
 async def api_digest():
-    """生成 AI 新闻纪要并返回"""
+    """生成 AI 新闻纪要并返回（自动推送已内置于 generate_digest）"""
     import traceback
     try:
         from ai_summary import summarizer
@@ -402,7 +402,7 @@ async def api_digest():
             return {"error": "未配置 DEEPSEEK_API_KEY", "topics": [], "summary": ""}
         
         # 获取 24h 内所有文章
-        data = get_articles(page=1, per_page=150, max_age_hours=24)
+        data = get_articles(page=1, per_page=300, max_age_hours=24)
         articles = data["articles"]
         if not articles:
             return {"error": "暂无 24h 内文章", "topics": [], "summary": ""}
@@ -413,6 +413,37 @@ async def api_digest():
         return result
     except Exception as e:
         return {"error": f"{e}\n{traceback.format_exc()[-300:]}", "topics": [], "summary": ""}
+
+
+@app.get("/api/digest/image")
+async def api_digest_image():
+    """将 AI 热点榜渲染为 PNG 图片返回（使用缓存，不重复调 API）"""
+    from fastapi.responses import Response
+    import traceback
+    try:
+        if not DEEPSEEK_API_KEY:
+            return {"error": "未配置 DEEPSEEK_API_KEY"}
+
+        from digest_image import render_digest_card_from_cache
+        img_bytes = render_digest_card_from_cache()
+        if img_bytes is None:
+            return {"error": "暂无 digest 缓存，请先点击「生成纪要」"}
+
+        return Response(content=img_bytes, media_type="image/png")
+    except Exception as e:
+        return {"error": f"{e}\n{traceback.format_exc()[-300:]}"}
+
+
+@app.post("/api/digest/push")
+async def api_digest_push():
+    """推送热点榜到企业微信（先 Markdown 摘要 + 后图片卡片）"""
+    import traceback
+    try:
+        from wecom_push import push_digest
+        result = push_digest()
+        return result
+    except Exception as e:
+        return {"errcode": -1, "errmsg": f"{e}\n{traceback.format_exc()[-300:]}"}
 
 
 if __name__ == "__main__":
